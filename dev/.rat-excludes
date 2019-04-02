@@ -120,3 +120,5 @@ flights_tiny.txt.1
 over1k
 over10k
 exported_table/*
+SessionManager.java
+SessionHandler.java
