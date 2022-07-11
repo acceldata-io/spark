@@ -20,7 +20,8 @@ package org.apache.spark.sql.hive.client
 import java.lang.{Boolean => JBoolean, Integer => JInteger, Long => JLong}
 import java.lang.reflect.{InvocationTargetException, Method, Modifier}
 import java.net.URI
-import java.util.{ArrayList => JArrayList, List => JList, Locale, Map => JMap, Set => JSet}
+import java.util.Locale
+import java.util.{ArrayList => JArrayList, List => JList, Map => JMap, Set => JSet}
 import java.util.concurrent.TimeUnit
 
 import scala.collection.JavaConverters._
@@ -39,7 +40,7 @@ import org.apache.hadoop.hive.ql.session.SessionState
 import org.apache.hadoop.hive.serde.serdeConstants
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.AnalysisException
+import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.NoSuchPermanentFunctionException
 import org.apache.spark.sql.catalyst.catalog.{CatalogFunction, CatalogTablePartition, CatalogUtils, FunctionResource, FunctionResourceType}
@@ -1181,3 +1182,163 @@ private[client] class Shim_v2_1 extends Shim_v2_0 {
 private[client] class Shim_v2_2 extends Shim_v2_1
 
 private[client] class Shim_v2_3 extends Shim_v2_1
+
+private[client] class Shim_v3_0 extends Shim_v2_3 {
+  // Naive Spark does not support transactional operations.
+  protected lazy val transactional = JBoolean.FALSE
+
+  // Spark supports only non-ACID operations
+  protected lazy val isAcidIUDoperation = JBoolean.FALSE
+
+  // Writer ID can be 0 for non-ACID operations
+  protected lazy val writeIdInLoadTableOrPartition: JLong = 0L
+
+  // Statement ID
+  protected lazy val stmtIdInLoadTableOrPartition: JInteger = 0
+
+  protected lazy val listBucketingLevel: JInteger = 0
+
+  private lazy val clazzLoadFileType = getClass.getClassLoader.loadClass(
+    "org.apache.hadoop.hive.ql.plan.LoadTableDesc$LoadFileType")
+
+  private lazy val loadPartitionMethod =
+    findMethod(
+      classOf[Hive],
+      "loadPartition",
+      classOf[Path],
+      classOf[Table],
+      classOf[JMap[String, String]],
+      clazzLoadFileType,
+      JBoolean.TYPE,
+      JBoolean.TYPE,
+      JBoolean.TYPE,
+      JBoolean.TYPE,
+      JBoolean.TYPE,
+      JBoolean.TYPE,
+      classOf[JLong],
+      JInteger.TYPE,
+      JBoolean.TYPE)
+  private lazy val loadTableMethod =
+    findMethod(
+      classOf[Hive],
+      "loadTable",
+      classOf[Path],
+      classOf[String],
+      clazzLoadFileType,
+      JBoolean.TYPE,
+      JBoolean.TYPE,
+      JBoolean.TYPE,
+      JBoolean.TYPE,
+      classOf[JLong],
+      JInteger.TYPE,
+      JBoolean.TYPE)
+  private lazy val loadDynamicPartitionsMethod =
+    findMethod(
+      classOf[Hive],
+      "loadDynamicPartitions",
+      classOf[Path],
+      classOf[String],
+      classOf[JMap[String, String]],
+      clazzLoadFileType,
+      JInteger.TYPE,
+      JInteger.TYPE,
+      JBoolean.TYPE,
+      JLong.TYPE,
+      JInteger.TYPE,
+      JBoolean.TYPE,
+      classOf[AcidUtils.Operation],
+      JBoolean.TYPE)
+  private lazy val alterTableMethod =
+    findMethod(
+      classOf[Hive],
+      "alterTable",
+      classOf[String],
+      classOf[Table],
+      classOf[EnvironmentContext],
+      JBoolean.TYPE)
+  private lazy val alterPartitionsMethod =
+    findMethod(
+      classOf[Hive],
+      "alterPartitions",
+      classOf[String],
+      classOf[JList[Partition]],
+      classOf[EnvironmentContext],
+      JBoolean.TYPE)
+
+  override def loadPartition(
+                              hive: Hive,
+                              loadPath: Path,
+                              tableName: String,
+                              partSpec: JMap[String, String],
+                              replace: Boolean,
+                              inheritTableSpecs: Boolean,
+                              isSkewedStoreAsSubdir: Boolean,
+                              isSrcLocal: Boolean): Unit = {
+    val session = SparkSession.getActiveSession
+    assert(session.nonEmpty)
+    val database = session.get.sessionState.catalog.getCurrentDatabase
+    val table = hive.getTable(database, tableName)
+    val loadFileType = if (replace) {
+      clazzLoadFileType.getEnumConstants.find(_.toString.equalsIgnoreCase("REPLACE_ALL"))
+    } else {
+      clazzLoadFileType.getEnumConstants.find(_.toString.equalsIgnoreCase("KEEP_EXISTING"))
+    }
+    assert(loadFileType.isDefined)
+    // Looks we should handle HIVE-19891 but looks no way to access the appropriate value here.
+    // Here, it just uses 'inheritTableSpecs' to keep the existing behaviour.
+    val inheritLocation = inheritTableSpecs
+    loadPartitionMethod.invoke(hive, loadPath, table, partSpec, loadFileType.get,
+      inheritTableSpecs: JBoolean, inheritLocation: JBoolean, isSkewedStoreAsSubdir: JBoolean,
+      isSrcLocal: JBoolean, isAcid, hasFollowingStatsTask,
+      writeIdInLoadTableOrPartition, stmtIdInLoadTableOrPartition, replace: JBoolean)
+  }
+
+
+  override def loadTable(
+                          hive: Hive,
+                          loadPath: Path,
+                          tableName: String,
+                          replace: Boolean,
+                          isSrcLocal: Boolean): Unit = {
+    val loadFileType = if (replace) {
+      clazzLoadFileType.getEnumConstants.find(_.toString.equalsIgnoreCase("REPLACE_ALL"))
+    } else {
+      clazzLoadFileType.getEnumConstants.find(_.toString.equalsIgnoreCase("KEEP_EXISTING"))
+    }
+    assert(loadFileType.isDefined)
+    loadTableMethod.invoke(hive, loadPath, tableName, loadFileType.get, isSrcLocal: JBoolean,
+      isSkewedStoreAsSubdir, isAcidIUDoperation, hasFollowingStatsTask,
+      writeIdInLoadTableOrPartition, stmtIdInLoadTableOrPartition: JInteger, replace: JBoolean)
+  }
+
+  override def loadDynamicPartitions(
+                                      hive: Hive,
+                                      loadPath: Path,
+                                      tableName: String,
+                                      partSpec: JMap[String, String],
+                                      replace: Boolean,
+                                      numDP: Int,
+                                      listBucketingEnabled: Boolean): Unit = {
+    val loadFileType = if (replace) {
+      clazzLoadFileType.getEnumConstants.find(_.toString.equalsIgnoreCase("REPLACE_ALL"))
+    } else {
+      clazzLoadFileType.getEnumConstants.find(_.toString.equalsIgnoreCase("KEEP_EXISTING"))
+    }
+    assert(loadFileType.isDefined)
+    loadDynamicPartitionsMethod.invoke(hive, loadPath, tableName, partSpec, loadFileType.get,
+      numDP: JInteger, listBucketingLevel, isAcid, writeIdInLoadTableOrPartition,
+      stmtIdInLoadTableOrPartition, hasFollowingStatsTask, AcidUtils.Operation.NOT_ACID,
+      replace: JBoolean)
+  }
+
+  override def alterTable(hive: Hive, tableName: String, table: Table): Unit = {
+    alterTableMethod.invoke(hive, tableName, table, environmentContextInAlterTable, transactional)
+  }
+
+  override def alterPartitions(hive: Hive, tableName: String, newParts: JList[Partition]): Unit = {
+    alterPartitionsMethod.invoke(
+      hive, tableName, newParts, environmentContextInAlterTable, transactional)
+  }
+}
+
+private[client] class Shim_v3_1 extends Shim_v3_0

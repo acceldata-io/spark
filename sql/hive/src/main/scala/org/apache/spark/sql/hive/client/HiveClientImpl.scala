@@ -26,6 +26,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.common.StatsSetupConst
 import org.apache.hadoop.hive.conf.HiveConf
@@ -86,7 +87,7 @@ private[hive] class HiveClientImpl(
     override val version: HiveVersion,
     warehouseDir: Option[String],
     sparkConf: SparkConf,
-    hadoopConf: JIterable[JMap.Entry[String, String]],
+    hadoopConf: Configuration,
     extraConfig: Map[String, String],
     initClassLoader: ClassLoader,
     val clientLoader: IsolatedClientLoader)
@@ -107,7 +108,18 @@ private[hive] class HiveClientImpl(
     case hive.v2_1 => new Shim_v2_1()
     case hive.v2_2 => new Shim_v2_2()
     case hive.v2_3 => new Shim_v2_3()
+    case hive.v3_0 => new Shim_v3_0()
+    case hive.v3_1 => new Shim_v3_1()
   }
+
+  if (version == hive.v3_0) {
+    hadoopConf.set("hive.execution.engine", "mr")
+  }
+
+  if (version == hive.v3_1) {
+    hadoopConf.set("hive.execution.engine", "mr")
+  }
+
 
   // Create an internal session state for this HiveClientImpl.
   val state: SessionState = {
@@ -169,15 +181,14 @@ private[hive] class HiveClientImpl(
     // has hive-site.xml. So, HiveConf will use that to override its default values.
     // 2: we set all spark confs to this hiveConf.
     // 3: we set all entries in config to this hiveConf.
-    val confMap = (hadoopConf.iterator().asScala.map(kv => kv.getKey -> kv.getValue) ++
-      sparkConf.getAll.toMap ++ extraConfig).toMap
-    confMap.foreach { case (k, v) => hiveConf.set(k, v) }
-    SQLConf.get.redactOptions(confMap).foreach { case (k, v) =>
+    (hadoopConf.iterator().asScala.map(kv => kv.getKey -> kv.getValue)
+      ++ sparkConf.getAll.toMap ++ extraConfig).foreach { case (k, v) =>
       logDebug(
         s"""
            |Applying Hadoop/Hive/Spark and extra properties to Hive Conf:
-           |$k=$v
+           |$k=${if (k.toLowerCase(Locale.ROOT).contains("password")) "xxx" else v}
          """.stripMargin)
+      hiveConf.set(k, v)
     }
     val state = new SessionState(hiveConf)
     if (clientLoader.cachedHive != null) {
