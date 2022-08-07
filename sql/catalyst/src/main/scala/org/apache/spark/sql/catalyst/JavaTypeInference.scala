@@ -46,6 +46,17 @@ object JavaTypeInference {
   private val keySetReturnType = classOf[JMap[_, _]].getMethod("keySet").getGenericReturnType
   private val valuesReturnType = classOf[JMap[_, _]].getMethod("values").getGenericReturnType
 
+  // Guava changed the name of this method; this tries to stay compatible with both
+  // TODO replace with isSupertypeOf when Guava 14 support no longer needed for Hadoop
+  private val ttIsAssignableFrom: (TypeToken[_], TypeToken[_]) => Boolean = {
+    val ttMethods = classOf[TypeToken[_]].getMethods.
+      filter(_.getParameterCount == 1).
+      filter(_.getParameterTypes.head == classOf[TypeToken[_]])
+    val isAssignableFromMethod = ttMethods.find(_.getName == "isSupertypeOf").getOrElse(
+      ttMethods.find(_.getName == "isAssignableFrom").get)
+    (a: TypeToken[_], b: TypeToken[_]) => isAssignableFromMethod.invoke(a, b).asInstanceOf[Boolean]
+  }
+
   /**
    * Infers the corresponding SQL data type of a JavaBean class.
    * @param beanClass Java type
@@ -108,11 +119,11 @@ object JavaTypeInference {
         val (dataType, nullable) = inferDataType(typeToken.getComponentType, seenTypeSet)
         (ArrayType(dataType, nullable), true)
 
-      case _ if iterableType.isAssignableFrom(typeToken) =>
+      case _ if ttIsAssignableFrom(iterableType, typeToken) =>
         val (dataType, nullable) = inferDataType(elementType(typeToken), seenTypeSet)
         (ArrayType(dataType, nullable), true)
 
-      case _ if mapType.isAssignableFrom(typeToken) =>
+      case _ if ttIsAssignableFrom(mapType, typeToken) =>
         val (keyType, valueType) = mapKeyValueType(typeToken)
         val (keyDataType, _) = inferDataType(keyType, seenTypeSet)
         val (valueDataType, nullable) = inferDataType(valueType, seenTypeSet)
@@ -269,14 +280,14 @@ object JavaTypeInference {
             ObjectType(c))
         }
 
-      case c if listType.isAssignableFrom(typeToken) =>
+      case c if ttIsAssignableFrom(listType, typeToken) =>
         val et = elementType(typeToken)
         UnresolvedMapObjects(
           p => deserializerFor(et, Some(p)),
           getPath,
           customCollectionCls = Some(c))
 
-      case _ if mapType.isAssignableFrom(typeToken) =>
+      case _ if ttIsAssignableFrom(mapType, typeToken) =>
         val (keyType, valueType) = mapKeyValueType(typeToken)
         val keyDataType = inferDataType(keyType)._1
         val valueDataType = inferDataType(valueType)._1
@@ -424,10 +435,10 @@ object JavaTypeInference {
         case _ if typeToken.isArray =>
           toCatalystArray(inputObject, typeToken.getComponentType)
 
-        case _ if listType.isAssignableFrom(typeToken) =>
+        case _ if ttIsAssignableFrom(listType, typeToken) =>
           toCatalystArray(inputObject, elementType(typeToken))
 
-        case _ if mapType.isAssignableFrom(typeToken) =>
+        case _ if ttIsAssignableFrom(mapType, typeToken) =>
           val (keyType, valueType) = mapKeyValueType(typeToken)
 
           ExternalMapToCatalyst(
