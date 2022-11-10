@@ -113,7 +113,7 @@ class VersionsSuite extends SparkFunSuite with Logging {
   }
 
   private val versions =
-    Seq("0.12", "0.13", "0.14", "1.0", "1.1", "1.2", "2.0", "2.1", "2.2", "2.3")
+    Seq("0.12", "0.13", "0.14", "1.0", "1.1", "1.2", "2.0", "2.1", "2.2", "2.3", "3.0", "3.1")
 
   private var client: HiveClient = null
 
@@ -131,6 +131,16 @@ class VersionsSuite extends SparkFunSuite with Logging {
       if (version == "2.0" || version == "2.1" || version == "2.2" || version == "2.3") {
         hadoopConf.set("datanucleus.schema.autoCreateAll", "true")
         hadoopConf.set("hive.metastore.schema.verification", "false")
+      }
+      if (version == "3.0") {
+        hadoopConf.set("datanucleus.schema.autoCreateAll", "true")
+        hadoopConf.set("hive.metastore.schema.verification", "false")
+        hadoopConf.set("hive.execution.engine", "mr")
+      }
+      if (version == "3.1") {
+        hadoopConf.set("datanucleus.schema.autoCreateAll", "true")
+        hadoopConf.set("hive.metastore.schema.verification", "false")
+        hadoopConf.set("hive.execution.engine", "mr")
       }
       client = buildClient(version, hadoopConf, HiveUtils.formatTimeVarsForHiveClient(hadoopConf))
       if (versionSpark != null) versionSpark.reset()

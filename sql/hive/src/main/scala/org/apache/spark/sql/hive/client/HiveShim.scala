@@ -34,7 +34,7 @@ import org.apache.hadoop.hive.metastore.api.{MetaException, PrincipalType, Resou
 import org.apache.hadoop.hive.ql.Driver
 import org.apache.hadoop.hive.ql.io.AcidUtils
 import org.apache.hadoop.hive.ql.metadata.{Hive, HiveException, Partition, Table}
-import org.apache.hadoop.hive.ql.plan.AddPartitionDesc
+import org.apache.hadoop.hive.ql.plan.{AddPartitionDesc, LoadTableDesc}
 import org.apache.hadoop.hive.ql.processors.{CommandProcessor, CommandProcessorFactory}
 import org.apache.hadoop.hive.ql.session.SessionState
 import org.apache.hadoop.hive.serde.serdeConstants

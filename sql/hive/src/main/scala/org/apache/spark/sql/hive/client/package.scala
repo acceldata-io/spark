@@ -81,10 +81,12 @@ package object client {
 
     case object v3_0 extends HiveVersion("3.0.0",
       exclusions = Seq("org.apache.curator:*",
+        "org.apache.hadoop:hadoop-aws",
         "org.pentaho:pentaho-aggdesigner-algorithm"))
 
-    case object v3_1 extends HiveVersion("3.1.0",
+    case object v3_1 extends HiveVersion("3.1.3",
       exclusions = Seq("org.apache.curator:*",
+        "org.apache.hadoop:hadoop-aws",
         "org.pentaho:pentaho-aggdesigner-algorithm"))
 
     val allSupportedHiveVersions = Set(v12, v13, v14, v1_0, v1_1, v1_2, v2_0, v2_1, v2_2, v2_3, v3_0, v3_1)
