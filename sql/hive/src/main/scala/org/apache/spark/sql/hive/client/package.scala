@@ -84,7 +84,7 @@ package object client {
         "org.apache.hadoop:hadoop-aws",
         "org.pentaho:pentaho-aggdesigner-algorithm"))
 
-    case object v3_1 extends HiveVersion("3.1.3",
+    case object v3_1 extends HiveVersion("3.1.4",
       exclusions = Seq("org.apache.curator:*",
         "org.apache.hadoop:hadoop-aws",
         "org.pentaho:pentaho-aggdesigner-algorithm"))
