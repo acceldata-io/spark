@@ -462,6 +462,8 @@ object SparkHadoopUtil {
       appendSparkHadoopConfigs(conf, hadoopConf)
       val bufferSize = conf.get("spark.buffer.size", "65536")
       hadoopConf.set("io.file.buffer.size", bufferSize)
+      // Workaround for timeline client Jersey conflicts.
+      hadoopConf.set("yarn.timeline-service.enabled", "false")
     }
   }
 
