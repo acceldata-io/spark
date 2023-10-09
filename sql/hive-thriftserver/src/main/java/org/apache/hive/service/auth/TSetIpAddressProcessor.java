@@ -51,6 +51,7 @@ public class TSetIpAddressProcessor<I extends Iface> extends TCLIService.Process
     setUserName(in);
     try {
       super.process(in, out);
+      return;
     } finally {
       THREAD_LOCAL_USER_NAME.remove();
       THREAD_LOCAL_IP_ADDRESS.remove();
