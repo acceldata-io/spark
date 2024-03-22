@@ -85,6 +85,15 @@ public abstract class ThriftCLIService extends AbstractService implements TCLISe
     public SessionHandle getSessionHandle() {
       return sessionHandle;
     }
+
+    public <T> T unwrap(Class<T> aClass) {
+      return null;
+    }
+
+    public boolean isWrapperFor(Class<?> aClass) {
+      return false;
+    }
+
   }
 
   public ThriftCLIService(CLIService service, String serviceName) {
