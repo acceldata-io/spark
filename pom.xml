@@ -43,6 +43,20 @@
     <url>scm:git:git@github.com:apache/spark.git</url>
     <tag>HEAD</tag>
   </scm>
+
+  <distributionManagement>
+    <repository>
+      <id>nexus-releases</id>
+      <name>Releases</name>
+      <url>https://repo1.acceldata.dev/repository/odp-release/</url>
+    </repository>
+    <snapshotRepository>
+      <id>nexus-snapshots</id>
+      <name>Snapshot</name>
+      <url>https://repo1.acceldata.dev/repository/odp-snapshot/</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <developers>
     <developer>
       <id>matei</id>
@@ -264,6 +278,19 @@
         <enabled>false</enabled>
       </snapshots>
     </repository>
+
+    <repository>
+      <id>acceldata repo</id>
+      <name>acceldata repo</name>
+      <url>https://repo1.acceldata.dev/repository/odp-central/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+
   </repositories>
   <pluginRepositories>
     <pluginRepository>
@@ -1110,6 +1137,10 @@
           <exclusion>
             <groupId>asm</groupId>
             <artifactId>asm</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.codehaus.jettison</groupId>
+            <artifactId>jettison</artifactId>
           </exclusion>
           <exclusion>
             <groupId>org.ow2.asm</groupId>
@@ -2899,9 +2930,9 @@
     <profile>
       <id>scala-2.11</id>
       <properties>
-        <!-- 
+        <!--
          SPARK-34774 Add this property to ensure change-scala-version.sh can replace the public `scala.version`
-         property correctly. 
+         property correctly.
         -->
         <scala.version>2.11.12</scala.version>
       </properties>
