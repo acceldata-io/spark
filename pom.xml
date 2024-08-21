@@ -26,7 +26,7 @@
   </parent>
   <groupId>org.apache.spark</groupId>
   <artifactId>spark-parent_2.11</artifactId>
-  <version>2.4.8.3.2.2.0-2</version>
+  <version>2.4.8.3.2.3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Spark Project Parent POM</name>
   <url>http://spark.apache.org/</url>
@@ -43,6 +43,20 @@
     <url>scm:git:git@github.com:apache/spark.git</url>
     <tag>HEAD</tag>
   </scm>
+
+  <distributionManagement>
+    <repository>
+      <id>nexus-releases</id>
+      <name>Releases</name>
+     <url>https://repo1.acceldata.dev/repository/odp-release/</url>
+   </repository>
+   <snapshotRepository>
+     <id>nexus-snapshots</id>
+     <name>Snapshot</name>
+     <url>https://repo1.acceldata.dev/repository/odp-snapshot/</url>
+   </snapshotRepository>
+ </distributionManagement>
+
   <developers>
     <developer>
       <id>matei</id>
@@ -117,16 +131,15 @@
     <maven.version>3.5.4</maven.version>
     <sbt.project.name>spark</sbt.project.name>
     <slf4j.version>1.7.16</slf4j.version>
-    <!--
-    <log4j.version>1.2.17</log4j.version>
-    -->
+    
     <reload4j.version>1.2.18.3</reload4j.version>
 
-    <hadoop.version>3.2.3.3.2.2.0-2</hadoop.version>
+    <hadoop.version>3.2.3.3.2.3.0-SNAPSHOT</hadoop.version>
+
     <protobuf.version>2.5.0</protobuf.version>
     <yarn.version>${hadoop.version}</yarn.version>
     <flume.version>1.6.0</flume.version>
-    <zookeeper.version>3.5.10.3.2.2.0-2</zookeeper.version>
+    <zookeeper.version>3.5.10.3.2.3.0-SNAPSHOT</zookeeper.version>
     <curator.version>2.6.0</curator.version>
     <hive.group>org.spark-project.hive</hive.group>
     <!-- Version used in Maven Hive dependency -->
@@ -268,6 +281,19 @@
         <enabled>false</enabled>
       </snapshots>
     </repository>
+
+    <repository>
+            <id>acceldata repo</id>
+            <name>acceldata repo</name>
+            <url>https://repo1.acceldata.dev/repository/odp-central/</url>
+            <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+        </repository>
+
   </repositories>
   <pluginRepositories>
     <pluginRepository>
@@ -1120,6 +1146,10 @@
           <exclusion>
             <groupId>asm</groupId>
             <artifactId>asm</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.codehaus.jettison</groupId>
+            <artifactId>jettison</artifactId>
           </exclusion>
           <exclusion>
             <groupId>org.ow2.asm</groupId>
@@ -2828,18 +2858,18 @@
     <profile>
       <id>hadoop-3.1</id>
       <properties>
-        <hadoop.version>3.2.3.3.2.2.0-2</hadoop.version>
+        <hadoop.version>3.2.3.3.2.3.0-SNAPSHOT</hadoop.version>
         <curator.version>2.12.0</curator.version>
-        <zookeeper.version>3.5.10.3.2.2.0-2</zookeeper.version>
+        <zookeeper.version>3.5.10.3.2.3.0-SNAPSHOT</zookeeper.version>
       </properties>
     </profile>
 
     <profile>
       <id>hadoop-3.2</id>
       <properties>
-        <hadoop.version>3.2.3.3.2.2.0-2</hadoop.version>
+        <hadoop.version>3.2.3.3.2.3.0-SNAPSHOT</hadoop.version>
         <curator.version>2.12.0</curator.version>
-        <zookeeper.version>3.5.10.3.2.2.0-2</zookeeper.version>
+        <zookeeper.version>3.5.10.3.2.3.0-SNAPSHOT</zookeeper.version>
       </properties>
     </profile>
 
@@ -2909,9 +2939,9 @@
     <profile>
       <id>scala-2.11</id>
       <properties>
-        <!-- 
+        <!--
          SPARK-34774 Add this property to ensure change-scala-version.sh can replace the public `scala.version`
-         property correctly. 
+         property correctly.
         -->
         <scala.version>2.11.12</scala.version>
       </properties>
