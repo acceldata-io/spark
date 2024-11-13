@@ -137,7 +137,7 @@
     <yarn.version>${hadoop.version}</yarn.version>
     <flume.version>1.6.0</flume.version>
     <zookeeper.version>3.5.10.3.2.3.2-203</zookeeper.version>
-    <curator.version>2.6.0</curator.version>
+    <curator.version>5.2.0</curator.version>
     <hive.group>org.spark-project.hive</hive.group>
     <!-- Version used in Maven Hive dependency -->
     <hive.version>1.2.1.spark24.0.14.1</hive.version>
@@ -2848,7 +2848,7 @@
       <id>hadoop-2.7</id>
       <properties>
         <hadoop.version>2.7.3</hadoop.version>
-        <curator.version>2.7.1</curator.version>
+        <curator.version>5.2.0</curator.version>
       </properties>
     </profile>
 
@@ -2856,8 +2856,8 @@
       <id>hadoop-3.1</id>
       <properties>
         <hadoop.version>3.2.3.3.2.3.2-203</hadoop.version>
-        <curator.version>2.12.0</curator.version>
         <zookeeper.version>3.5.10.3.2.3.2-203</zookeeper.version>
+        <curator.version>5.2.0</curator.version>
       </properties>
     </profile>
 
@@ -2865,8 +2865,8 @@
       <id>hadoop-3.2</id>
       <properties>
         <hadoop.version>3.2.3.3.2.3.2-203</hadoop.version>
-        <curator.version>2.12.0</curator.version>
         <zookeeper.version>3.5.10.3.2.3.2-203</zookeeper.version>
+        <curator.version>5.2.0</curator.version>
       </properties>
     </profile>
 
