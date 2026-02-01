@@ -188,8 +188,8 @@ private[hive] class IsolatedClientLoader(
     (sharesHadoopClasses && isHadoopClass) ||
     name.startsWith("scala.") ||
     (name.startsWith("com.google") && !name.startsWith("com.google.cloud")) ||
-    name.startsWith("java.lang.") ||
-    name.startsWith("java.net") ||
+    name.startsWith("java.") || // All Java standard library classes (java.lang, java.sql, java.util, etc.)
+    name.startsWith("javax.sql.") || // JDBC extensions
     sharedPrefixes.exists(name.startsWith)
   }
 
