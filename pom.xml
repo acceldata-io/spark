@@ -182,12 +182,12 @@
     <netlib.java.version>1.1.2</netlib.java.version>
     <calcite.version>1.2.0-incubating</calcite.version>
     <commons-codec.version>1.10</commons-codec.version>
-    <commons-compress.version>1.20</commons-compress.version>
-    <commons-io.version>2.4</commons-io.version>
+    <commons-compress.version>1.26.1</commons-compress.version>
+    <commons-io.version>2.16.1</commons-io.version>
     <!-- org.apache.commons/commons-lang/-->
     <commons-lang2.version>2.6</commons-lang2.version>
     <!-- org.apache.commons/commons-lang3/-->
-    <commons-lang3.version>3.17</commons-lang3.version>
+    <commons-lang3.version>3.17.0</commons-lang3.version>
     <datanucleus-core.version>3.2.10</datanucleus-core.version>
     <guava.version>27.0-jre</guava.version>
     <janino.version>3.0.16</janino.version>
@@ -511,7 +511,7 @@
       <dependency>
         <groupId>commons-beanutils</groupId>
         <artifactId>commons-beanutils</artifactId>
-        <version>1.9.4</version>
+        <version>1.11.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.ivy</groupId>
@@ -676,7 +676,7 @@
       <dependency>
         <groupId>commons-net</groupId>
         <artifactId>commons-net</artifactId>
-        <version>3.1</version>
+        <version>3.9.0</version>
       </dependency>
       <dependency>
         <groupId>io.netty</groupId>
