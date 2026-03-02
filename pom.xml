@@ -187,7 +187,7 @@
     <!-- org.apache.commons/commons-lang/-->
     <commons-lang2.version>2.6</commons-lang2.version>
     <!-- org.apache.commons/commons-lang3/-->
-    <commons-lang3.version>3.18</commons-lang3.version>
+    <commons-lang3.version>3.17</commons-lang3.version>
     <datanucleus-core.version>3.2.10</datanucleus-core.version>
     <guava.version>27.0-jre</guava.version>
     <janino.version>3.0.16</janino.version>
