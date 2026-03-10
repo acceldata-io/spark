@@ -105,6 +105,11 @@
       <artifactId>xbean-asm6-shaded</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.xbean</groupId>
+      <artifactId>xbean-asm9-shaded</artifactId>
+    </dependency>
+
     <!-- Explicit listing of transitive deps that are shaded. Otherwise, odd compiler crashes. -->
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
