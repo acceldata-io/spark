@@ -25,6 +25,9 @@ import scala.language.existentials
 import org.apache.xbean.asm6.{ClassReader, ClassVisitor, MethodVisitor}
 import org.apache.xbean.asm6.Opcodes._
 
+import org.apache.xbean.asm9.{ClassReader => ClassReader9}
+import org.apache.xbean.asm9.{ClassVisitor => ClassVisitor9}
+
 import org.apache.spark.util.Utils
 
 /**
@@ -79,25 +82,33 @@ private[graphx] object BytecodeUtils {
    * Get an ASM class reader for a given class from the JAR that loaded it.
    */
   private def getClassReader(cls: Class[_]): ClassReader = {
-    // Copy data over, before delegating to ClassReader - else we can run out of open file handles.
     val className = cls.getName.replaceFirst("^.*\\.", "") + ".class"
     val resourceStream = cls.getResourceAsStream(className)
-    // todo: Fixme - continuing with earlier behavior ...
     if (resourceStream == null) return new ClassReader(resourceStream)
 
     val baos = new ByteArrayOutputStream(128)
     Utils.copyStream(resourceStream, baos, true)
-    new ClassReader(new ByteArrayInputStream(baos.toByteArray))
-  }
+    val classBytes = baos.toByteArray
 
-  /**
-   * Given the class name, return whether we should look into the class or not. This is used to
-   * skip examining a large quantity of Java or Scala classes that we know for sure wouldn't access
-   * the closures. Note that the class name is expected in ASM style (i.e. use "/" instead of ".").
-   */
-  private def skipClass(className: String): Boolean = {
-    val c = className
-    c.startsWith("java/") || c.startsWith("scala/") || c.startsWith("javax/")
+    // Check class file major version (bytes 6-7)
+    // JDK8=52, JDK9=53, JDK10=54, JDK11=55
+    val majorVersion = ((classBytes(6) & 0xFF) << 8) | (classBytes(7) & 0xFF)
+
+    if (majorVersion >= 55) {
+      val reader9 = new ClassReader9(new ByteArrayInputStream(classBytes))
+      val writer9 = new org.apache.xbean.asm9.ClassWriter(0)
+      reader9.accept(new ClassVisitor9(
+        org.apache.xbean.asm9.Opcodes.ASM9, writer9) {
+        override def visit(
+                            version: Int, access: Int, name: String, signature: String,
+                            superName: String, interfaces: Array[String]): Unit = {
+          super.visit(52, access, name, signature, superName, interfaces)
+        }
+      }, 0)
+      new ClassReader(new ByteArrayInputStream(writer9.toByteArray))
+    } else {
+      new ClassReader(new ByteArrayInputStream(classBytes))
+    }
   }
 
   /**
