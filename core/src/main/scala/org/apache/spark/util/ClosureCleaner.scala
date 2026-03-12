@@ -29,9 +29,6 @@ import org.apache.xbean.asm6.{ClassReader, ClassVisitor, Handle, MethodVisitor, 
 import org.apache.xbean.asm6.Opcodes._
 import org.apache.xbean.asm6.tree.{ClassNode, MethodNode}
 
-import org.apache.xbean.asm9.{ClassReader => ClassReader9}
-import org.apache.xbean.asm9.{ClassVisitor => ClassVisitor9}
-
 import org.apache.spark.{SparkEnv, SparkException}
 import org.apache.spark.internal.Logging
 
@@ -40,8 +37,9 @@ import org.apache.spark.internal.Logging
  */
 private[spark] object ClosureCleaner extends Logging {
 
-  // REPLACE WITH EXACTLY THIS
+  // Get an ASM class reader for a given class from the JAR that loaded it
   private[util] def getClassReader(cls: Class[_]): ClassReader = {
+    // Copy data over, before delegating to ClassReader - else we can run out of open file handles.
     val className = cls.getName.replaceFirst("^.*\\.", "") + ".class"
     val resourceStream = cls.getResourceAsStream(className)
     if (resourceStream == null) {
@@ -49,32 +47,7 @@ private[spark] object ClosureCleaner extends Logging {
     } else {
       val baos = new ByteArrayOutputStream(128)
       Utils.copyStream(resourceStream, baos, true)
-      val classBytes = baos.toByteArray
-
-      // Check class file major version (bytes 6-7)
-      // Java 8  = 52, Java 9 = 53, Java 10 = 54, Java 11 = 55
-      val majorVersion = ((classBytes(6) & 0xFF) << 8) | (classBytes(7) & 0xFF)
-
-      if (majorVersion >= 55) {
-        // JDK11+ class — read with ASM9, rewrite as JDK8 for ASM6 compatibility
-        val reader9 = new ClassReader9(new ByteArrayInputStream(classBytes))
-        val writer9 = new org.apache.xbean.asm9.ClassWriter(0)
-        // Downgrade class version to JDK8 (52) so rest of Spark code works unchanged
-        reader9.accept(new ClassVisitor9(
-          org.apache.xbean.asm9.Opcodes.ASM9, writer9) {
-          override def visit(
-                              version: Int, access: Int, name: String, signature: String,
-                              superName: String, interfaces: Array[String]): Unit = {
-            // Force version down to Java 8
-            super.visit(52, access, name, signature, superName, interfaces)
-          }
-        }, 0)
-        // Return as ASM6 ClassReader using the rewritten bytes
-        new ClassReader(new ByteArrayInputStream(writer9.toByteArray))
-      } else {
-        // JDK8/10 class — existing behavior unchanged
-        new ClassReader(new ByteArrayInputStream(classBytes))
-      }
+      new ClassReader(new ByteArrayInputStream(baos.toByteArray))
     }
   }
 
