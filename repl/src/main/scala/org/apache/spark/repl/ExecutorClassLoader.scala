@@ -17,16 +17,13 @@
 
 package org.apache.spark.repl
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, FileNotFoundException, FilterInputStream, InputStream}
+import java.io.{ByteArrayOutputStream, FileNotFoundException, FilterInputStream, InputStream}
 import java.net.{URI, URL, URLEncoder}
 import java.nio.channels.Channels
 
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.xbean.asm6._
 import org.apache.xbean.asm6.Opcodes._
-
-import org.apache.xbean.asm9.{ClassReader => ClassReader9}
-import org.apache.xbean.asm9.{ClassVisitor => ClassVisitor9}
 
 import org.apache.spark.{SparkConf, SparkEnv}
 import org.apache.spark.deploy.SparkHadoopUtil
@@ -181,44 +178,18 @@ class ExecutorClassLoader(
 
   def readAndTransformClass(name: String, in: InputStream): Array[Byte] = {
     if (name.startsWith("line") && name.endsWith("$iw$")) {
-      // Read bytes first to check version
-      val bos = new ByteArrayOutputStream
-      val buf = new Array[Byte](4096)
-      var done = false
-      while (!done) {
-        val num = in.read(buf)
-        if (num >= 0) bos.write(buf, 0, num) else done = true
-      }
-      val classBytes = bos.toByteArray
-
-      // Check class file major version (bytes 6-7)
-      val majorVersion = ((classBytes(6) & 0xFF) << 8) | (classBytes(7) & 0xFF)
-
-      val crBytes: Array[Byte] = if (majorVersion >= 55) {
-        val reader9 = new ClassReader9(new ByteArrayInputStream(classBytes))
-        val writer9 = new org.apache.xbean.asm9.ClassWriter(0)
-        reader9.accept(new ClassVisitor9(
-          org.apache.xbean.asm9.Opcodes.ASM9, writer9) {
-          override def visit(
-                              version: Int, access: Int, name: String, signature: String,
-                              superName: String, interfaces: Array[String]): Unit = {
-            super.visit(52, access, name, signature, superName, interfaces)
-          }
-        }, 0)
-        writer9.toByteArray
-      } else {
-        classBytes
-      }
-
-    // Existing ConstructorCleaner logic — unchanged
-      val cr = new ClassReader(new ByteArrayInputStream(crBytes))
+      // Class seems to be an interpreter "wrapper" object storing a val or var.
+      // Replace its constructor with a dummy one that does not run the
+      // initialization code placed there by the REPL. The val or var will
+      // be initialized later through reflection when it is used in a task.
+      val cr = new ClassReader(in)
       val cw = new ClassWriter(
         ClassWriter.COMPUTE_FRAMES + ClassWriter.COMPUTE_MAXS)
       val cleaner = new ConstructorCleaner(name, cw)
       cr.accept(cleaner, 0)
       return cw.toByteArray
     } else {
-      // Pass the class through unmodified — unchanged
+      // Pass the class through unmodified
       val bos = new ByteArrayOutputStream
       val bytes = new Array[Byte](4096)
       var done = false
