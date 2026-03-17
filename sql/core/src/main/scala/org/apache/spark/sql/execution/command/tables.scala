@@ -414,6 +414,19 @@ case class TruncateTableCommand(
         s"Operation not allowed: TRUNCATE TABLE on views: $tableIdentWithDB")
     }
 
+    if (table.tableType == CatalogTableType.EXTERNAL &&
+        !spark.sessionState.conf.truncateTableAllowExternal) {
+      throw new AnalysisException(
+        s"Operation not allowed: TRUNCATE TABLE on external tables: $tableIdentWithDB. " +
+        s"Set ${SQLConf.TRUNCATE_TABLE_ALLOW_EXTERNAL.key}=true to enable this.")
+    }
+
+    if (table.partitionColumnNames.isEmpty && partitionSpec.isDefined) {
+      throw new AnalysisException(
+        s"Operation not allowed: TRUNCATE TABLE ... PARTITION is not supported " +
+        s"for tables that are not partitioned: $tableIdentWithDB")
+    }
+
     if (partitionSpec.isDefined) {
       DDLUtils.verifyPartitionProviderIsHive(spark, table, "TRUNCATE TABLE ... PARTITION")
     }
