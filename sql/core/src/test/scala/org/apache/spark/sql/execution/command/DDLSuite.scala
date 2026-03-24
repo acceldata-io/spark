@@ -2084,8 +2084,29 @@ abstract class DDLSuite extends QueryTest with SQLTestUtils {
         intercept[NoSuchTableException] {
           sql("TRUNCATE TABLE my_temp_tab")
         }
+        // external tables are blocked by default
         assertUnsupported("TRUNCATE TABLE my_ext_tab")
         assertUnsupported("TRUNCATE TABLE my_view")
+      }
+    }
+  }
+
+  test("truncate table - external table allowed when config is set") {
+    import testImplicits._
+    withTempPath { tempDir =>
+      withTable("my_ext_tab") {
+        (1 to 10).map { i => (i, i) }.toDF("a", "b").write.parquet(tempDir.getCanonicalPath)
+        sql(s"CREATE TABLE my_ext_tab using parquet LOCATION '${tempDir.toURI}'")
+        assert(spark.table("my_ext_tab").collect().nonEmpty,
+          "bad test; table was empty to begin with")
+        withSQLConf(SQLConf.TRUNCATE_TABLE_ALLOW_EXTERNAL.key -> "true") {
+          sql("TRUNCATE TABLE my_ext_tab")
+          assert(spark.table("my_ext_tab").collect().isEmpty)
+        }
+        // table location directory must still exist after truncation
+        val path = new Path(tempDir.getCanonicalPath)
+        val fs = path.getFileSystem(spark.sessionState.newHadoopConf())
+        assert(fs.exists(path), "table location directory must still exist after truncation")
       }
     }
   }
