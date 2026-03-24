@@ -1591,6 +1591,14 @@ object SQLConf {
       .booleanConf
       .createWithDefault(false)
 
+  val TRUNCATE_TABLE_ALLOW_EXTERNAL =
+    buildConf("spark.sql.truncate.allowExternalTables")
+      .doc("When set to true, TRUNCATE TABLE is permitted on external tables. " +
+        "This permanently deletes all data at the external storage location. " +
+        "Use with caution: data cannot be recovered after truncation.")
+      .booleanConf
+      .createWithDefault(false)
+
   val LEGACY_MSSQLSERVER_NUMERIC_MAPPING_ENABLED =
      buildConf("spark.sql.legacy.mssqlserver.numericMapping.enabled")
        .internal()
@@ -2006,6 +2014,9 @@ class SQLConf extends Serializable with Logging {
 
   def truncateTableIgnorePermissionAcl: Boolean =
     getConf(SQLConf.TRUNCATE_TABLE_IGNORE_PERMISSION_ACL)
+
+  def truncateTableAllowExternal: Boolean =
+    getConf(SQLConf.TRUNCATE_TABLE_ALLOW_EXTERNAL)
 
   def legacyMsSqlServerNumericMappingEnabled: Boolean =
     getConf(LEGACY_MSSQLSERVER_NUMERIC_MAPPING_ENABLED)
