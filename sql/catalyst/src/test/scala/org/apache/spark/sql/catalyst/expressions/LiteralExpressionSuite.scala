@@ -165,6 +165,31 @@ class LiteralExpressionSuite extends SparkFunSuite with ExpressionEvalHelper {
     }
   }
 
+  test("SPARK-40253: decimal precision for zero values") {
+    // Zero values like 0.00 have precision < scale, which can cause precision loss.
+    // The fix ensures DecimalType has at least 1 integer digit (precision > scale).
+    def checkZeroDecimalPrecision(value: String): Unit = {
+      val javaBigDecimal = new java.math.BigDecimal(value)
+      val literal = Literal(javaBigDecimal)
+      val decimalType = literal.dataType.asInstanceOf[DecimalType]
+      // Ensure precision > scale so there's at least 1 integer digit
+      assert(decimalType.precision > decimalType.scale,
+        s"For $value: precision(${decimalType.precision}) should be > scale(${decimalType.scale})")
+      checkEvaluation(literal, Decimal(javaBigDecimal))
+    }
+
+    checkZeroDecimalPrecision("0.0")
+    checkZeroDecimalPrecision("0.00")
+    checkZeroDecimalPrecision("0.000")
+    checkZeroDecimalPrecision("0.0000000000")
+    checkZeroDecimalPrecision("-0.00")
+
+    // Non-zero values should retain original behavior
+    val nonZeroLiteral = Literal(new java.math.BigDecimal("1.23"))
+    val nonZeroType = nonZeroLiteral.dataType.asInstanceOf[DecimalType]
+    assert(nonZeroType.precision == 3 && nonZeroType.scale == 2)
+  }
+
   private def toCatalyst[T: TypeTag](value: T): Any = {
     val ScalaReflection.Schema(dataType, _) = ScalaReflection.schemaFor[T]
     CatalystTypeConverters.createToCatalystConverter(dataType)(value)

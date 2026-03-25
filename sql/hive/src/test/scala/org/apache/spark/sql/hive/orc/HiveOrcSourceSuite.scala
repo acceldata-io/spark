@@ -153,4 +153,41 @@ class HiveOrcSourceSuite extends OrcSuite with TestHiveSingleton {
       }
     }
   }
+
+  test("SPARK-40253: decimal with precision <= scale should not corrupt zero values") {
+    // DecimalType(1,1) means precision=1, scale=1, giving 0 integer digits.
+    // Zero values like 0.0 were being corrupted when written with Hive ORC.
+    withTempDir { dir =>
+      val orcDir = new File(dir, "orc").getCanonicalPath
+
+      // Test various problematic decimal types where precision <= scale
+      Seq(
+        (DecimalType(1, 1), new java.math.BigDecimal("0.0")),
+        (DecimalType(2, 2), new java.math.BigDecimal("0.00")),
+        (DecimalType(3, 3), new java.math.BigDecimal("0.000"))
+      ).foreach { case (decimalType, zeroValue) =>
+        val schema = StructType(Seq(
+          StructField("id", IntegerType, false),
+          StructField("value", decimalType, true)
+        ))
+
+        val data = Seq(
+          Row(1, zeroValue),
+          Row(2, new java.math.BigDecimal("0.5").setScale(decimalType.scale)),
+          Row(3, zeroValue)
+        )
+
+        val df = spark.createDataFrame(
+          spark.sparkContext.parallelize(data), schema)
+
+        val path = s"$orcDir/${decimalType.precision}_${decimalType.scale}"
+        df.write.mode("overwrite").orc(path)
+
+        // Should be able to read back without EOFException
+        val result = spark.read.orc(path)
+        assert(result.count() == 3)
+        assert(result.filter("value = 0").count() == 2)
+      }
+    }
+  }
 }

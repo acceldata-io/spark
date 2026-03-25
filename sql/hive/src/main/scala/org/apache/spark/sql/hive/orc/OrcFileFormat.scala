@@ -208,10 +208,28 @@ private[orc] class OrcSerializer(dataSchema: StructType, conf: Configuration)
     serializer.serialize(cachedOrcStruct, structOI)
   }
 
+  // SPARK-40253: Sanitize decimal types to ensure precision > scale (at least 1 integer digit).
+  // DecimalType(1,1) or DecimalType(2,2) causes Hive ORC to corrupt zero values like 0.0, 0.00.
+  private[this] def sanitizeDecimalType(dt: DataType): DataType = dt match {
+    case d: DecimalType if d.precision <= d.scale =>
+      val newPrecision = Math.min(d.scale + 1, DecimalType.MAX_PRECISION)
+      DecimalType(newPrecision, d.scale)
+    case ArrayType(elementType, containsNull) =>
+      ArrayType(sanitizeDecimalType(elementType), containsNull)
+    case MapType(keyType, valueType, valueContainsNull) =>
+      MapType(sanitizeDecimalType(keyType), sanitizeDecimalType(valueType), valueContainsNull)
+    case StructType(fields) =>
+      StructType(fields.map(f => f.copy(dataType = sanitizeDecimalType(f.dataType))))
+    case other => other
+  }
+
+  private[this] val sanitizedSchema = StructType(
+    dataSchema.fields.map(f => f.copy(dataType = sanitizeDecimalType(f.dataType))))
+
   private[this] val serializer = {
     val table = new Properties()
-    table.setProperty("columns", dataSchema.fieldNames.mkString(","))
-    table.setProperty("columns.types", dataSchema.map(_.dataType.catalogString).mkString(":"))
+    table.setProperty("columns", sanitizedSchema.fieldNames.mkString(","))
+    table.setProperty("columns.types", sanitizedSchema.map(_.dataType.catalogString).mkString(":"))
 
     val serde = new OrcSerde
     serde.initialize(conf, table)
@@ -219,8 +237,9 @@ private[orc] class OrcSerializer(dataSchema: StructType, conf: Configuration)
   }
 
   // Object inspector converted from the schema of the relation to be serialized.
+  // Uses sanitizedSchema to ensure proper decimal precision for Hive ORC.
   private[this] val structOI = {
-    val typeInfo = TypeInfoUtils.getTypeInfoFromTypeString(dataSchema.catalogString)
+    val typeInfo = TypeInfoUtils.getTypeInfoFromTypeString(sanitizedSchema.catalogString)
     OrcStruct.createObjectInspector(typeInfo.asInstanceOf[StructTypeInfo])
       .asInstanceOf[SettableStructObjectInspector]
   }

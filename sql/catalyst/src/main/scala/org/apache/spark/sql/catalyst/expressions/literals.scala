@@ -61,7 +61,11 @@ object Literal {
     case b: Boolean => Literal(b, BooleanType)
     case d: BigDecimal => Literal(Decimal(d), DecimalType.fromBigDecimal(d))
     case d: JavaBigDecimal =>
-      Literal(Decimal(d), DecimalType(Math.max(d.precision, d.scale), d.scale()))
+      // SPARK-40253: Use Decimal's adjusted precision instead of BigDecimal's raw precision.
+      // Decimal.set(BigDecimal) correctly adjusts precision for values like 0.00 where
+      // BigDecimal.precision < BigDecimal.scale (e.g., precision=1, scale=2 -> adjusted to 3,2).
+      val decimal = Decimal(d)
+      Literal(decimal, DecimalType(decimal.precision, decimal.scale))
     case d: Decimal => Literal(d, DecimalType(Math.max(d.precision, d.scale), d.scale))
     case t: Timestamp => Literal(DateTimeUtils.fromJavaTimestamp(t), TimestampType)
     case d: Date => Literal(DateTimeUtils.fromJavaDate(d), DateType)
