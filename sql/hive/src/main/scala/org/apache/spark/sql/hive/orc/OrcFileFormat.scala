@@ -212,8 +212,14 @@ private[orc] class OrcSerializer(dataSchema: StructType, conf: Configuration)
   // DecimalType(1,1) or DecimalType(2,2) causes Hive ORC to corrupt zero values like 0.0, 0.00.
   private[this] def sanitizeDecimalType(dt: DataType): DataType = dt match {
     case d: DecimalType if d.precision <= d.scale =>
-      val newPrecision = Math.min(d.scale + 1, DecimalType.MAX_PRECISION)
-      DecimalType(newPrecision, d.scale)
+      // Ensure precision > scale, including when scale is at MAX_PRECISION.
+      if (d.scale >= DecimalType.MAX_PRECISION) {
+        // Cannot increase precision beyond MAX_PRECISION, so reduce scale to keep at least 1
+        // integer digit.
+        DecimalType(DecimalType.MAX_PRECISION, DecimalType.MAX_PRECISION - 1)
+      } else {
+        DecimalType(d.scale + 1, d.scale)
+      }
     case ArrayType(elementType, containsNull) =>
       ArrayType(sanitizeDecimalType(elementType), containsNull)
     case MapType(keyType, valueType, valueContainsNull) =>
