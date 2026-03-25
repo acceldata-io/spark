@@ -171,9 +171,10 @@ class HiveOrcSourceSuite extends OrcSuite with TestHiveSingleton {
           StructField("value", decimalType, true)
         ))
 
+        val nonZeroValue = new java.math.BigDecimal("0.5").setScale(decimalType.scale)
         val data = Seq(
           Row(1, zeroValue),
-          Row(2, new java.math.BigDecimal("0.5").setScale(decimalType.scale)),
+          Row(2, nonZeroValue),
           Row(3, zeroValue)
         )
 
@@ -187,6 +188,23 @@ class HiveOrcSourceSuite extends OrcSuite with TestHiveSingleton {
         val result = spark.read.orc(path)
         assert(result.count() == 3)
         assert(result.filter("value = 0").count() == 2)
+
+        // Also verify reading back with the original schema preserves type and scale
+        val resultWithSchema = spark.read.schema(schema).orc(path)
+        assert(resultWithSchema.schema("value").dataType == decimalType)
+        val rows = resultWithSchema.orderBy("id").collect()
+        assert(rows.length == 3)
+        // Check that zero values are preserved with the correct scale
+        val value0 = rows(0).getAs[java.math.BigDecimal]("value")
+        val value1 = rows(1).getAs[java.math.BigDecimal]("value")
+        val value2 = rows(2).getAs[java.math.BigDecimal]("value")
+        assert(value0.compareTo(zeroValue) == 0)
+        assert(value1.compareTo(nonZeroValue) == 0,
+          s"Non-zero value should be preserved: expected $nonZeroValue but got $value1")
+        assert(value2.compareTo(zeroValue) == 0)
+        assert(value0.scale() == decimalType.scale)
+        assert(value1.scale() == decimalType.scale)
+        assert(value2.scale() == decimalType.scale)
       }
     }
   }

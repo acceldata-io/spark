@@ -64,8 +64,11 @@ object Literal {
       // SPARK-40253: Use Decimal's adjusted precision instead of BigDecimal's raw precision.
       // Decimal.set(BigDecimal) correctly adjusts precision for values like 0.00 where
       // BigDecimal.precision < BigDecimal.scale (e.g., precision=1, scale=2 -> adjusted to 3,2).
+      // Bound to Spark's MAX_PRECISION to avoid AnalysisException for large-scale inputs.
       val decimal = Decimal(d)
-      Literal(decimal, DecimalType(decimal.precision, decimal.scale))
+      val boundedPrecision = math.min(DecimalType.MAX_PRECISION, decimal.precision)
+      val boundedScale = math.min(boundedPrecision, decimal.scale)
+      Literal(decimal, DecimalType(boundedPrecision, boundedScale))
     case d: Decimal => Literal(d, DecimalType(Math.max(d.precision, d.scale), d.scale))
     case t: Timestamp => Literal(DateTimeUtils.fromJavaTimestamp(t), TimestampType)
     case d: Date => Literal(DateTimeUtils.fromJavaDate(d), DateType)

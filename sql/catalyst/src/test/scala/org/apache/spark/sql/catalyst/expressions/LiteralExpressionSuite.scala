@@ -184,6 +184,15 @@ class LiteralExpressionSuite extends SparkFunSuite with ExpressionEvalHelper {
     checkZeroDecimalPrecision("0.0000000000")
     checkZeroDecimalPrecision("-0.00")
 
+    // Edge case: scale at MAX_PRECISION (38 fractional digits); precision must still be valid
+    val maxScaleBigDecimal = new java.math.BigDecimal("0." + "0" * 38)
+    val maxScaleLiteral = Literal(maxScaleBigDecimal)
+    val maxScaleType = maxScaleLiteral.dataType.asInstanceOf[DecimalType]
+    assert(maxScaleType.precision <= DecimalType.MAX_PRECISION,
+      s"precision(${maxScaleType.precision}) should be <= MAX_PRECISION(${DecimalType.MAX_PRECISION})")
+    assert(maxScaleType.precision > maxScaleType.scale,
+      s"precision(${maxScaleType.precision}) should be > scale(${maxScaleType.scale})")
+
     // Non-zero values should retain original behavior
     val nonZeroLiteral = Literal(new java.math.BigDecimal("1.23"))
     val nonZeroType = nonZeroLiteral.dataType.asInstanceOf[DecimalType]
