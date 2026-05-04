@@ -26,7 +26,7 @@
   </parent>
   <groupId>org.apache.spark</groupId>
   <artifactId>spark-parent_2.11</artifactId>
-  <version>2.4.8.3.2.3.4-SNAPSHOT</version>
+  <version>2.4.8.3.2.3.6-2</version>
   <packaging>pom</packaging>
   <name>Spark Project Parent POM</name>
   <url>http://spark.apache.org/</url>
@@ -134,12 +134,12 @@
 
     <reload4j.version>1.2.18.3</reload4j.version>
 
-    <hadoop.version>3.2.3.3.2.3.4-SNAPSHOT</hadoop.version>
+    <hadoop.version>3.2.3.3.2.3.6-2</hadoop.version>
 
     <protobuf.version>3.25.5</protobuf.version>
     <yarn.version>${hadoop.version}</yarn.version>
     <flume.version>1.6.0</flume.version>
-    <zookeeper.version>3.5.10.3.2.3.4-SNAPSHOT</zookeeper.version>
+    <zookeeper.version>3.5.10.3.2.3.6-2</zookeeper.version>
     <curator.version>5.2.0</curator.version>
     <hive.group>org.spark-project.hive</hive.group>
     <!-- Version used in Maven Hive dependency -->
@@ -182,12 +182,12 @@
     <netlib.java.version>1.1.2</netlib.java.version>
     <calcite.version>1.2.0-incubating</calcite.version>
     <commons-codec.version>1.10</commons-codec.version>
-    <commons-compress.version>1.21</commons-compress.version>
-    <commons-io.version>2.4</commons-io.version>
+    <commons-compress.version>1.26.1</commons-compress.version>
+    <commons-io.version>2.16.1</commons-io.version>
     <!-- org.apache.commons/commons-lang/-->
     <commons-lang2.version>2.6</commons-lang2.version>
     <!-- org.apache.commons/commons-lang3/-->
-    <commons-lang3.version>3.5</commons-lang3.version>
+    <commons-lang3.version>3.17.0</commons-lang3.version>
     <datanucleus-core.version>3.2.10</datanucleus-core.version>
     <guava.version>27.0-jre</guava.version>
     <janino.version>3.0.16</janino.version>
@@ -511,7 +511,7 @@
       <dependency>
         <groupId>commons-beanutils</groupId>
         <artifactId>commons-beanutils</artifactId>
-        <version>1.9.4</version>
+        <version>1.11.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.ivy</groupId>
@@ -547,6 +547,13 @@
         <groupId>org.fusesource.leveldbjni</groupId>
         <artifactId>leveldbjni-all</artifactId>
         <version>1.8</version>
+        <exclusions>
+          <!-- CVE-2024-36124: org.iq80.snappy out-of-bounds read; Spark uses org.xerial.snappy:snappy-java -->
+          <exclusion>
+            <groupId>org.iq80.snappy</groupId>
+            <artifactId>snappy</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.seleniumhq.selenium</groupId>
@@ -676,12 +683,12 @@
       <dependency>
         <groupId>commons-net</groupId>
         <artifactId>commons-net</artifactId>
-        <version>3.1</version>
+        <version>3.9.0</version>
       </dependency>
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-all</artifactId>
-        <version>4.1.127.Final</version>
+        <version>4.1.132.Final</version>
       </dependency>
       <dependency>
         <groupId>io.netty</groupId>
@@ -1598,6 +1605,11 @@
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
           </exclusion>
+          <!-- CVE-2024-36124: org.iq80.snappy out-of-bounds read; Spark uses org.xerial.snappy:snappy-java -->
+          <exclusion>
+            <groupId>org.iq80.snappy</groupId>
+            <artifactId>snappy</artifactId>
+          </exclusion>
         </exclusions>
       </dependency>
       <dependency>
@@ -2087,6 +2099,11 @@
         <artifactId>paranamer</artifactId>
         <version>${paranamer.version}</version>
         <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>1.33</version>
       </dependency>
       <dependency>
         <groupId>org.apache.arrow</groupId>
@@ -2858,18 +2875,18 @@
     <profile>
       <id>hadoop-3.1</id>
       <properties>
-        <hadoop.version>3.2.3.3.2.3.4-SNAPSHOT</hadoop.version>
+        <hadoop.version>3.2.3.3.2.3.6-2</hadoop.version>
         <curator.version>5.2.0</curator.version>
-        <zookeeper.version>3.5.10.3.2.3.4-SNAPSHOT</zookeeper.version>
+        <zookeeper.version>3.5.10.3.2.3.6-2</zookeeper.version>
       </properties>
     </profile>
 
     <profile>
       <id>hadoop-3.2</id>
       <properties>
-        <hadoop.version>3.2.3.3.2.3.4-SNAPSHOT</hadoop.version>
+        <hadoop.version>3.2.3.3.2.3.6-2</hadoop.version>
         <curator.version>5.2.0</curator.version>
-        <zookeeper.version>3.5.10.3.2.3.4-SNAPSHOT</zookeeper.version>
+        <zookeeper.version>3.5.10.3.2.3.6-2</zookeeper.version>
       </properties>
     </profile>
 
