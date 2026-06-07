@@ -189,7 +189,8 @@
     <!-- org.apache.commons/commons-lang3/-->
     <commons-lang3.version>3.17.0</commons-lang3.version>
     <datanucleus-core.version>3.2.10</datanucleus-core.version>
-    <guava.version>27.0-jre</guava.version>
+    <guava.version>33.4.0-jre</guava.version>
+    <guava.failureaccess.version>1.0.2</guava.failureaccess.version>
     <janino.version>3.0.16</janino.version>
     <jersey.version>2.22.2</jersey.version>
     <joda.version>2.9.3</joda.version>
@@ -459,6 +460,11 @@
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
         <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>failureaccess</artifactId>
+        <version>${guava.failureaccess.version}</version>
       </dependency>
       <dependency>
         <groupId>org.jpmml</groupId>
@@ -2629,6 +2635,7 @@
               <include>org.eclipse.jetty:jetty-util</include>
               <include>org.eclipse.jetty:jetty-server</include>
               <include>com.google.guava:guava</include>
+              <include>com.google.guava:failureaccess</include>
               <include>org.jpmml:*</include>
             </includes>
           </artifactSet>
