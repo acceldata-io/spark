@@ -149,8 +149,8 @@
     <hive.version.short>1.2.1</hive.version.short>
     <derby.version>10.14.3</derby.version>
     <parquet.version>1.10.1</parquet.version>
-    <orc.version>1.5.8</orc.version>
-    <orc.classifier>nohive</orc.classifier>
+    <orc.version>1.9.5</orc.version>
+    <orc.classifier>shaded-protobuf</orc.classifier>
     <hive.parquet.version>1.6.0</hive.parquet.version>
     <jetty.version>9.4.57.v20241219</jetty.version>
     <javaxservlet.version>3.1.0</javaxservlet.version>
