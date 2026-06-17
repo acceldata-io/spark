@@ -259,6 +259,9 @@ class SparkSubmitCommandBuilder extends AbstractCommandBuilder {
     String extraClassPath = isClientMode ? config.get(SparkLauncher.DRIVER_EXTRA_CLASSPATH) : null;
 
     List<String> cmd = buildJavaCommand(extraClassPath);
+    // SPARK-37106 backport: emit `--add-opens` options needed under Java 17.
+    // -XX:+IgnoreUnrecognizedVMOptions inside the list keeps this safe on JDK 8 / 11.
+    addOptionString(cmd, JavaModuleOptions.defaultModuleOptions());
     // Take Thrift Server as daemon
     if (isThriftServer(mainClass)) {
       addOptionString(cmd, System.getenv("SPARK_DAEMON_JAVA_OPTS"));
