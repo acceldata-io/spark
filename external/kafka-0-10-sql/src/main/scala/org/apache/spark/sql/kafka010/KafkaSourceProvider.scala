@@ -358,9 +358,12 @@ private[kafka010] class KafkaSourceProvider extends DataSourceRegister
     // Validate user-specified Kafka options
 
     if (caseInsensitiveParams.contains(s"kafka.${ConsumerConfig.GROUP_ID_CONFIG}")) {
-      throw new IllegalArgumentException(
-        s"Kafka option '${ConsumerConfig.GROUP_ID_CONFIG}' is not supported as " +
-          s"user-specified consumer groups are not used to track offsets.")
+      logWarning(
+        s"Kafka option '${ConsumerConfig.GROUP_ID_CONFIG}' is set. This option will " +
+          s"override 'groupIdPrefix' option. Note that you must ensure no multiple queries " +
+          s"or sources are using the same group id. Otherwise, they may interfere with each " +
+          s"other. Also make sure that the option 'kafka.${ConsumerConfig.GROUP_ID_CONFIG}' " +
+          s"is unique across all your streaming and batch queries.")
     }
 
     if (caseInsensitiveParams.contains(s"kafka.${ConsumerConfig.AUTO_OFFSET_RESET_CONFIG}")) {
@@ -531,7 +534,7 @@ private[kafka010] object KafkaSourceProvider extends Logging {
       .set(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none")
 
       // So that consumers in executors do not mess with any existing group id
-      .set(ConsumerConfig.GROUP_ID_CONFIG, s"$uniqueGroupId-executor")
+      .setIfUnset(ConsumerConfig.GROUP_ID_CONFIG, s"$uniqueGroupId-executor")
 
       // So that consumers in executors does not commit offsets unnecessarily
       .set(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
@@ -548,7 +551,8 @@ private[kafka010] object KafkaSourceProvider extends Logging {
   private def streamingUniqueGroupId(
       parameters: Map[String, String],
       metadataPath: String): String = {
-    val groupIdPrefix = parameters
+    val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
+    val groupIdPrefix = caseInsensitiveParams
       .getOrElse("groupIdPrefix", "spark-kafka-source")
     s"${groupIdPrefix}-${UUID.randomUUID}-${metadataPath.hashCode}"
   }
