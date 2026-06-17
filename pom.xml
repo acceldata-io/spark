@@ -127,8 +127,9 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>1.8</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-    <maven.version>3.5.4</maven.version>
+    <maven.compiler.target>11</maven.compiler.target>
+    <maven.version>3.6.3</maven.version>
+    <scala-maven-plugin.version>4.8.0</scala-maven-plugin.version>
     <sbt.project.name>spark</sbt.project.name>
     <slf4j.version>1.7.16</slf4j.version>
 
@@ -2141,7 +2142,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-enforcer-plugin</artifactId>
-          <version>3.0.0-M1</version>
+          <version>3.3.0</version>
           <executions>
             <execution>
               <id>enforce-versions</id>
@@ -2223,8 +2224,7 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <!-- 3.3.1 won't work with zinc; fails to find javac from java.home -->
-          <version>3.3.3</version>
+          <version>${scala-maven-plugin.version}</version>
           <executions>
             <execution>
               <id>eclipse-add-source</id>
@@ -2248,12 +2248,12 @@
           <configuration>
             <scalaVersion>${scala.version}</scalaVersion>
             <recompileMode>incremental</recompileMode>
-            <useZincServer>true</useZincServer>
             <args>
               <arg>-unchecked</arg>
               <arg>-deprecation</arg>
               <arg>-feature</arg>
               <arg>-explaintypes</arg>
+              <arg>-target:jvm-1.8</arg>
               <arg>-Yno-adapted-args</arg>
             </args>
             <jvmArgs>
@@ -2273,7 +2273,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.7.0</version>
+          <version>3.11.0</version>
           <configuration>
             <source>${java.version}</source>
             <target>${java.version}</target>
@@ -2290,7 +2290,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.0</version>
+          <version>3.1.2</version>
           <!-- Note config is repeated in scalatest config -->
           <configuration>
             <includes>
@@ -2391,7 +2391,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.0.2</version>
+          <version>3.3.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -2489,7 +2489,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>3.5.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
