@@ -25,9 +25,9 @@ import scala.collection.mutable.{Map, Set, Stack}
 import scala.language.existentials
 
 import org.apache.commons.lang3.ClassUtils
-import org.apache.xbean.asm6.{ClassReader, ClassVisitor, Handle, MethodVisitor, Type}
-import org.apache.xbean.asm6.Opcodes._
-import org.apache.xbean.asm6.tree.{ClassNode, MethodNode}
+import org.apache.xbean.asm9.{ClassReader, ClassVisitor, Handle, MethodVisitor, Type}
+import org.apache.xbean.asm9.Opcodes._
+import org.apache.xbean.asm9.tree.{ClassNode, MethodNode}
 
 import org.apache.spark.{SparkEnv, SparkException}
 import org.apache.spark.internal.Logging
