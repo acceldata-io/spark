@@ -61,7 +61,7 @@ class HiveOrcFilterSuite extends OrcTest with TestHiveSingleton {
       DataSourceStrategy.selectFilters(maybeRelation.get, maybeAnalyzedPredicate.toSeq)
     assert(selectedFilters.nonEmpty, "No filter is pushed down")
 
-    val maybeFilter = OrcFilters.createFilter(query.schema, selectedFilters.toArray)
+    val maybeFilter = OrcFilters.createFilter(query.schema, selectedFilters)
     assert(maybeFilter.isDefined, s"Couldn't generate filter predicate for $selectedFilters")
     checker(maybeFilter.get)
   }
@@ -105,7 +105,7 @@ class HiveOrcFilterSuite extends OrcTest with TestHiveSingleton {
       DataSourceStrategy.selectFilters(maybeRelation.get, maybeAnalyzedPredicate.toSeq)
     assert(selectedFilters.nonEmpty, "No filter is pushed down")
 
-    val maybeFilter = OrcFilters.createFilter(query.schema, selectedFilters.toArray)
+    val maybeFilter = OrcFilters.createFilter(query.schema, selectedFilters)
     assert(maybeFilter.isEmpty, s"Could generate filter predicate for $selectedFilters")
   }
 
@@ -363,7 +363,7 @@ class HiveOrcFilterSuite extends OrcTest with TestHiveSingleton {
         |expr = leaf-0
       """.stripMargin.trim
     ) {
-      OrcFilters.createFilter(schema, Array(
+      OrcFilters.createFilter(schema, Seq(
         LessThan("a", 10),
         StringContains("b", "prefix")
       )).get.toString
@@ -375,7 +375,7 @@ class HiveOrcFilterSuite extends OrcTest with TestHiveSingleton {
         |expr = leaf-0
       """.stripMargin.trim
     ) {
-      OrcFilters.createFilter(schema, Array(
+      OrcFilters.createFilter(schema, Seq(
         LessThan("a", 10),
         Not(And(
           GreaterThan("a", 1),
