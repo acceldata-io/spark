@@ -2875,18 +2875,18 @@
     <profile>
       <id>hadoop-3.1</id>
       <properties>
-        <hadoop.version>3.2.3.3.3.6.3-103</hadoop.version>
+        <hadoop.version>3.3.6.3.3.6.3-103</hadoop.version>
         <curator.version>5.2.0</curator.version>
-        <zookeeper.version>3.5.10.3.3.6.3-103</zookeeper.version>
+        <zookeeper.version>3.8.4.3.3.6.3-103</zookeeper.version>
       </properties>
     </profile>
 
     <profile>
       <id>hadoop-3.2</id>
       <properties>
-        <hadoop.version>3.2.3.3.3.6.3-103</hadoop.version>
+        <hadoop.version>3.3.6.3.3.6.3-103</hadoop.version>
         <curator.version>5.2.0</curator.version>
-        <zookeeper.version>3.5.10.3.3.6.3-103</zookeeper.version>
+        <zookeeper.version>3.8.4.3.3.6.3-103</zookeeper.version>
       </properties>
     </profile>
 
