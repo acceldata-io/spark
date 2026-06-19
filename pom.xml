@@ -187,7 +187,7 @@
     <!-- org.apache.commons/commons-lang/-->
     <commons-lang2.version>2.6</commons-lang2.version>
     <!-- org.apache.commons/commons-lang3/-->
-    <commons-lang3.version>3.17.0</commons-lang3.version>
+    <commons-lang3.version>3.18.0</commons-lang3.version>
     <datanucleus-core.version>3.2.10</datanucleus-core.version>
     <guava.version>33.4.0-jre</guava.version>
     <guava.failureaccess.version>1.0.2</guava.failureaccess.version>
