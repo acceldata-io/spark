@@ -148,7 +148,7 @@
     <hive.version.short>1.2.1</hive.version.short>
     <derby.version>10.14.3</derby.version>
     <parquet.version>1.10.1</parquet.version>
-    <orc.version>1.5.8</orc.version>
+    <orc.version>1.8.5</orc.version>
     <orc.classifier>nohive</orc.classifier>
     <hive.parquet.version>1.6.0</hive.parquet.version>
     <jetty.version>9.4.57.v20241219</jetty.version>
@@ -1866,6 +1866,11 @@
             <artifactId>hive-storage-api</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.airlift</groupId>
+        <artifactId>aircompressor</artifactId>
+        <version>0.27</version>
       </dependency>
       <dependency>
         <groupId>org.apache.orc</groupId>
