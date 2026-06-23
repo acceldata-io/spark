@@ -18,13 +18,16 @@
 package org.apache.spark.util
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-import java.lang.invoke.SerializedLambda
+import java.lang.invoke.{MethodHandleInfo, SerializedLambda}
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable.{Map, Set, Stack}
 import scala.language.existentials
 
-import org.apache.xbean.asm7.{ClassReader, ClassVisitor, MethodVisitor, Type}
+import org.apache.commons.lang3.ClassUtils
+import org.apache.xbean.asm7.{ClassReader, ClassVisitor, Handle, MethodVisitor, Opcodes, Type}
 import org.apache.xbean.asm7.Opcodes._
+import org.apache.xbean.asm7.tree.{ClassNode, MethodNode}
 
 import org.apache.spark.{SparkEnv, SparkException}
 import org.apache.spark.internal.Logging
@@ -670,7 +673,7 @@ private[spark] object IndylambdaScalaClosures extends Logging {
       val currentClass = currentId.cls
       val currentMethodNode = methodNodeById(currentId)
       logTrace(s"  scanning ${currentId.cls.getName}.${currentId.name}${currentId.desc}")
-      currentMethodNode.accept(new MethodVisitor(ASM6) {
+      currentMethodNode.accept(new MethodVisitor(ASM7) {
         val currentClassName = currentClass.getName
         val currentClassInternalName = currentClassName.replace('.', '/')
 

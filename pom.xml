@@ -188,7 +188,7 @@
     <commons-lang2.version>2.6</commons-lang2.version>
     <!-- org.apache.commons/commons-lang3/-->
     <commons-lang3.version>3.17.0</commons-lang3.version>
-    <datanucleus-core.version>3.2.10</datanucleus-core.version>
+    <datanucleus-core.version>4.1.17</datanucleus-core.version>
     <guava.version>27.0-jre</guava.version>
     <janino.version>3.0.16</janino.version>
     <jersey.version>2.22.2</jersey.version>
@@ -2131,6 +2131,21 @@
             <artifactId>netty-handler</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.datanucleus</groupId>
+        <artifactId>datanucleus-core</artifactId>
+        <version>4.1.17</version>
+      </dependency>
+      <dependency>
+        <groupId>org.datanucleus</groupId>
+        <artifactId>datanucleus-api-jdo</artifactId>
+        <version>4.2.4</version>
+      </dependency>
+      <dependency>
+        <groupId>org.datanucleus</groupId>
+        <artifactId>datanucleus-rdbms</artifactId>
+        <version>4.1.19</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
