@@ -1847,8 +1847,6 @@
         <groupId>org.apache.orc</groupId>
         <artifactId>orc-core</artifactId>
         <version>${orc.version}</version>
-        <classifier>${orc.classifier}</classifier>
-        <scope>${orc.deps.scope}</scope>
         <exclusions>
           <exclusion>
             <groupId>javax.xml.bind</groupId>
