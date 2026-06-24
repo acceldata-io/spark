@@ -19,10 +19,10 @@ package org.apache.spark.unsafe;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 
-import sun.misc.Cleaner;
 import sun.misc.Unsafe;
 
 public final class Platform {
@@ -65,6 +65,45 @@ public final class Platform {
       }
     }
     unaligned = _unaligned;
+  }
+
+  // Access fields and constructors once and store them, for performance. The DirectByteBuffer
+  // "cleaner" mechanism differs between Java 8 (sun.misc.Cleaner) and Java 9+
+  // (jdk.internal.ref.Cleaner), so resolve everything reflectively to remain source-compatible
+  // with both.
+  private static final Constructor<?> DBB_CONSTRUCTOR;
+  private static final Field DBB_CLEANER_FIELD;
+  private static final Method CLEANER_CREATE_METHOD;
+  static {
+    try {
+      Class<?> cls = Class.forName("java.nio.DirectByteBuffer");
+      Constructor<?> constructor = cls.getDeclaredConstructor(Long.TYPE, Integer.TYPE);
+      constructor.setAccessible(true);
+      Field cleanerField = cls.getDeclaredField("cleaner");
+      cleanerField.setAccessible(true);
+      DBB_CONSTRUCTOR = constructor;
+      DBB_CLEANER_FIELD = cleanerField;
+    } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException e) {
+      throw new IllegalStateException(e);
+    }
+
+    Class<?> cleanerClass;
+    try {
+      cleanerClass = Class.forName("sun.misc.Cleaner");
+    } catch (ClassNotFoundException e) {
+      try {
+        cleanerClass = Class.forName("jdk.internal.ref.Cleaner");
+      } catch (ClassNotFoundException e2) {
+        throw new IllegalStateException(e2);
+      }
+    }
+    try {
+      Method createMethod = cleanerClass.getMethod("create", Object.class, Runnable.class);
+      createMethod.setAccessible(true);
+      CLEANER_CREATE_METHOD = createMethod;
+    } catch (NoSuchMethodException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   /**
@@ -162,15 +201,14 @@ public final class Platform {
   @SuppressWarnings("unchecked")
   public static ByteBuffer allocateDirectBuffer(int size) {
     try {
-      Class<?> cls = Class.forName("java.nio.DirectByteBuffer");
-      Constructor<?> constructor = cls.getDeclaredConstructor(Long.TYPE, Integer.TYPE);
-      constructor.setAccessible(true);
-      Field cleanerField = cls.getDeclaredField("cleaner");
-      cleanerField.setAccessible(true);
       long memory = allocateMemory(size);
-      ByteBuffer buffer = (ByteBuffer) constructor.newInstance(memory, size);
-      Cleaner cleaner = Cleaner.create(buffer, () -> freeMemory(memory));
-      cleanerField.set(buffer, cleaner);
+      ByteBuffer buffer = (ByteBuffer) DBB_CONSTRUCTOR.newInstance(memory, size);
+      try {
+        DBB_CLEANER_FIELD.set(buffer,
+            CLEANER_CREATE_METHOD.invoke(null, buffer, (Runnable) () -> freeMemory(memory)));
+      } catch (IllegalAccessException | InvocationTargetException e) {
+        throwException(e);
+      }
       return buffer;
     } catch (Exception e) {
       throwException(e);

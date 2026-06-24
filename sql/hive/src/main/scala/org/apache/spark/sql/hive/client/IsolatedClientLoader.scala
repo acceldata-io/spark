@@ -25,6 +25,7 @@ import java.util
 import scala.util.Try
 
 import org.apache.commons.io.{FileUtils, IOUtils}
+import org.apache.commons.lang3.{JavaVersion, SystemUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars
 
@@ -165,15 +166,20 @@ private[hive] class IsolatedClientLoader(
     val config: Map[String, String] = Map.empty,
     val isolationOn: Boolean = true,
     val sharesHadoopClasses: Boolean = true,
-    val rootClassLoader: ClassLoader = ClassLoader.getSystemClassLoader.getParent.getParent,
+    val rootClassLoader: ClassLoader =
+    if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
+      val platformCL =
+        classOf[ClassLoader].getMethod("getPlatformClassLoader")
+          .invoke(null).asInstanceOf[ClassLoader]
+      assert(Try(platformCL.loadClass("org.apache.hadoop.hive.conf.HiveConf")).isFailure)
+      platformCL
+    } else {
+      null
+    },
     val baseClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
     val sharedPrefixes: Seq[String] = Seq.empty,
     val barrierPrefixes: Seq[String] = Seq.empty)
   extends Logging {
-
-  // Check to make sure that the root classloader does not know about Hive.
-  assert(Try(rootClassLoader.loadClass("org.apache.hadoop.hive.conf.HiveConf")).isFailure)
-
   /** All jars used by the hive specific classloader. */
   protected def allJars = execJars.toArray
 
@@ -188,8 +194,8 @@ private[hive] class IsolatedClientLoader(
     (sharesHadoopClasses && isHadoopClass) ||
     name.startsWith("scala.") ||
     (name.startsWith("com.google") && !name.startsWith("com.google.cloud")) ||
-    name.startsWith("java.lang.") ||
-    name.startsWith("java.net") ||
+    name.startsWith("java.") ||
+    name.startsWith("javax.sql") ||
     sharedPrefixes.exists(name.startsWith)
   }
 

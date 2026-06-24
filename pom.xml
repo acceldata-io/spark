@@ -2057,6 +2057,16 @@
         <version>${datanucleus-core.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.datanucleus</groupId>
+        <artifactId>datanucleus-rdbms</artifactId>
+        <version>4.1.19</version>
+      </dependency>
+      <dependency>
+        <groupId>org.datanucleus</groupId>
+        <artifactId>datanucleus-api-jdo</artifactId>
+        <version>4.2.4</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>${libthrift.version}</version>
@@ -2131,21 +2141,6 @@
             <artifactId>netty-handler</artifactId>
           </exclusion>
         </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.datanucleus</groupId>
-        <artifactId>datanucleus-core</artifactId>
-        <version>4.1.17</version>
-      </dependency>
-      <dependency>
-        <groupId>org.datanucleus</groupId>
-        <artifactId>datanucleus-api-jdo</artifactId>
-        <version>4.2.4</version>
-      </dependency>
-      <dependency>
-        <groupId>org.datanucleus</groupId>
-        <artifactId>datanucleus-rdbms</artifactId>
-        <version>4.1.19</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -2263,7 +2258,7 @@
           <configuration>
             <scalaVersion>${scala.version}</scalaVersion>
             <recompileMode>incremental</recompileMode>
-            <useZincServer>true</useZincServer>
+            <useZincServer>false</useZincServer>
             <args>
               <arg>-unchecked</arg>
               <arg>-deprecation</arg>
