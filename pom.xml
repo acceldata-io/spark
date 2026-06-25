@@ -2896,14 +2896,11 @@
         <hadoop.version>3.2.3.3.2.3.6-301</hadoop.version>
         <curator.version>5.2.0</curator.version>
         <zookeeper.version>3.5.10.3.2.3.6-301</zookeeper.version>
-        <hive.group>org.apache.hive</hive.group>
-        <hive.classifier>core</hive.classifier>
-        <hive.version>${hive23.version}</hive.version>
-        <hive.version.short>2.3.5</hive.version.short>
+        <!-- ODP-7038: avoid updating hive version here or empty orc classifier.
+        Leaving unset means they inherit from the top-level -->
         <!-- Do not need parquet-hadoop-bundle because we already have
           parquet-common, parquet-column and parquet-hadoop -->
         <hive.parquet.scope>provided</hive.parquet.scope>
-        <orc.classifier></orc.classifier>
         <datanucleus-core.version>4.1.17</datanucleus-core.version>
       </properties>
       <dependencies>

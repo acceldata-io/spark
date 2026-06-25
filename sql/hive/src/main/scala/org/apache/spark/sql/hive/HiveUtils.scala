@@ -19,6 +19,8 @@ package org.apache.spark.sql.hive
 
 import java.io.File
 import java.net.{URL, URLClassLoader}
+import java.nio.charset.StandardCharsets
+import java.sql.Timestamp
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -28,9 +30,11 @@ import scala.language.implicitConversions
 
 import org.apache.commons.lang3.{JavaVersion, SystemUtils}
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hive.common.`type`.HiveDecimal
 import org.apache.hadoop.hive.conf.HiveConf
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars
 import org.apache.hadoop.hive.ql.session.SessionState
+import org.apache.hadoop.hive.serde2.io.{DateWritable, TimestampWritable}
 import org.apache.hadoop.util.VersionInfo
 
 import org.apache.spark.{SparkConf, SparkContext}
@@ -56,6 +60,12 @@ private[spark] object HiveUtils extends Logging {
 
   /** The version of hive used internally by Spark SQL. */
   val builtinHiveVersion: String = "1.2.1"
+
+  // ODP-7038: definition restored — SPARK-28723 added references to HiveUtils.isHive23
+  // in test/shim code but the actual val was missing from the cherry-pick. On this branch
+  // builtinHiveVersion is "1.2.1" so this evaluates to false and the test branches fall
+  // through to the original Hive-1.2 expectations.
+  val isHive23: Boolean = builtinHiveVersion.startsWith("2.3")
 
   val HIVE_METASTORE_VERSION = buildConf("spark.sql.hive.metastore.version")
     .doc("Version of the Hive metastore. Available options are " +
