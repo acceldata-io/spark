@@ -1765,7 +1765,9 @@ def _check_dataframe_localize_timestamps(pdf, timezone):
     from pyspark.sql.utils import require_minimum_pandas_version
     require_minimum_pandas_version()
 
-    for column, series in pdf.iteritems():
+    # pandas 2.x removed DataFrame.iteritems(); .items() exists in both 1.x and 2.x.
+    _items = getattr(pdf, "items", None) or pdf.iteritems
+    for column, series in _items():
         pdf[column] = _check_series_localize_timestamps(series, timezone)
     return pdf
 

@@ -28,6 +28,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.HashMap
 import scala.language.implicitConversions
 
+import org.apache.commons.lang3.{JavaVersion, SystemUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hive.common.`type`.HiveDecimal
 import org.apache.hadoop.hive.conf.HiveConf
@@ -60,9 +61,16 @@ private[spark] object HiveUtils extends Logging {
   /** The version of hive used internally by Spark SQL. */
   val builtinHiveVersion: String = "1.2.1"
 
+  // ODP-7038: definition restored — SPARK-28723 added references to HiveUtils.isHive23
+  // in test/shim code but the actual val was missing from the cherry-pick. On this branch
+  // builtinHiveVersion is "1.2.1" so this evaluates to false and the test branches fall
+  // through to the original Hive-1.2 expectations.
+  val isHive23: Boolean = builtinHiveVersion.startsWith("2.3")
+
   val HIVE_METASTORE_VERSION = buildConf("spark.sql.hive.metastore.version")
     .doc("Version of the Hive metastore. Available options are " +
-        s"<code>0.12.0</code> through <code>2.3.3</code>.")
+        "<code>0.12.0</code> through <code>2.3.6</code> and " +
+        "<code>3.0.0</code> through <code>3.1.1</code>.")
     .stringConf
     .createWithDefault(builtinHiveVersion)
 
@@ -328,10 +336,17 @@ private[spark] object HiveUtils extends Logging {
 
       val classLoader = Utils.getContextOrSparkClassLoader
       val jars = allJars(classLoader)
-      if (jars.length == 0) {
-        throw new IllegalArgumentException(
-          "Unable to locate hive jars to connect to metastore. " +
-            s"Please set ${HIVE_METASTORE_JARS.key}.")
+      if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
+        // Do nothing. The system classloader is no longer a URLClassLoader in Java 9,
+        // so it won't match the case in allJars above. It no longer exposes URLs of
+        // the system classpath
+      } else {
+        // Verify at least one jar was found
+        if (jars.length == 0) {
+          throw new IllegalArgumentException(
+            "Unable to locate hive jars to connect to metastore. " +
+              s"Please set ${HIVE_METASTORE_JARS.key}.")
+        }
       }
 
       logInfo(

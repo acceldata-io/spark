@@ -15,12 +15,17 @@
 # limitations under the License.
 #
 
-import collections
+try:
+    # Python 3.3+ - the abc collection types
+    from collections.abc import Iterable as _Iterable
+except ImportError:  # pragma: no cover
+    # Python 2 fallback
+    from collections import Iterable as _Iterable
 
 __all__ = ["ResultIterable"]
 
 
-class ResultIterable(collections.Iterable):
+class ResultIterable(_Iterable):
 
     """
     A special result iterable. This is used because the standard

@@ -19,10 +19,10 @@ package org.apache.spark.unsafe;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 
-import sun.misc.Cleaner;
 import sun.misc.Unsafe;
 
 public final class Platform {
@@ -65,6 +65,76 @@ public final class Platform {
       }
     }
     unaligned = _unaligned;
+  }
+
+  // Access fields and constructors once and store them, for performance. The DirectByteBuffer
+  // "cleaner" mechanism differs between Java 8 (sun.misc.Cleaner) and Java 9+
+  // (jdk.internal.ref.Cleaner), so resolve everything reflectively to remain source-compatible
+  // with both.
+  private static final Constructor<?> DBB_CONSTRUCTOR;
+  private static final Field DBB_CLEANER_FIELD;
+  private static final Method CLEANER_CREATE_METHOD;
+  static {
+    // At the end of this block, CLEANER_CREATE_METHOD should be non-null iff it's possible to use
+    // reflection to invoke it, which is not necessarily possible by default in Java 9+.
+    // Code below can test for null to see whether to use it.
+    Constructor<?> constructor;
+    Field cleanerField;
+    try {
+      Class<?> cls = Class.forName("java.nio.DirectByteBuffer");
+      constructor = cls.getDeclaredConstructor(Long.TYPE, Integer.TYPE);
+      cleanerField = cls.getDeclaredField("cleaner");
+      try {
+        constructor.setAccessible(true);
+        cleanerField.setAccessible(true);
+      } catch (RuntimeException re) {
+        // JDK 9+ throws InaccessibleObjectException when the target package is not
+        // exported/opened to this module. Handle by name to avoid importing the JDK9+ exception.
+        if ("InaccessibleObjectException".equals(re.getClass().getSimpleName())) {
+          constructor = null;
+          cleanerField = null;
+        } else {
+          throw re;
+        }
+      }
+    } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException e) {
+      throw new IllegalStateException(e);
+    }
+    DBB_CONSTRUCTOR = constructor;
+    DBB_CLEANER_FIELD = cleanerField;
+
+    // Skip the Cleaner lookup if we already know we can't use the constructor/field.
+    if (DBB_CONSTRUCTOR == null || DBB_CLEANER_FIELD == null) {
+      CLEANER_CREATE_METHOD = null;
+    } else {
+      Class<?> cleanerClass;
+      try {
+        cleanerClass = Class.forName("sun.misc.Cleaner");
+      } catch (ClassNotFoundException e) {
+        try {
+          cleanerClass = Class.forName("jdk.internal.ref.Cleaner");
+        } catch (ClassNotFoundException e2) {
+          throw new IllegalStateException(e2);
+        }
+      }
+      Method createMethod;
+      try {
+        createMethod = cleanerClass.getMethod("create", Object.class, Runnable.class);
+      } catch (NoSuchMethodException e) {
+        throw new IllegalStateException(e);
+      }
+      // Accessing jdk.internal.ref.Cleaner should actually fail by default in JDK 9+,
+      // unless the user has allowed access with `--add-opens java.base/jdk.internal.ref=ALL-UNNAMED`.
+      // If access is denied, fall back to ByteBuffer.allocateDirect() in allocateDirectBuffer().
+      try {
+        createMethod.invoke(null, null, null);
+      } catch (IllegalAccessException e) {
+        createMethod = null;
+      } catch (InvocationTargetException ite) {
+        // shouldn't happen; logically can't invoke on a null target
+      }
+      CLEANER_CREATE_METHOD = createMethod;
+    }
   }
 
   /**
@@ -155,22 +225,33 @@ public final class Platform {
   }
 
   /**
-   * Uses internal JDK APIs to allocate a DirectByteBuffer while ignoring the JVM's
-   * MaxDirectMemorySize limit (the default limit is too low and we do not want to require users
-   * to increase it).
+   * Allocate a DirectByteBuffer, potentially bypassing the JVM's MaxDirectMemorySize limit when
+   * the JDK Cleaner is accessible. Otherwise (e.g., JDK9+ without
+   * `--add-opens java.base/jdk.internal.ref=ALL-UNNAMED`), fall back to a regular
+   * ByteBuffer.allocateDirect(), which respects MaxDirectMemorySize.
    */
   @SuppressWarnings("unchecked")
   public static ByteBuffer allocateDirectBuffer(int size) {
     try {
-      Class<?> cls = Class.forName("java.nio.DirectByteBuffer");
-      Constructor<?> constructor = cls.getDeclaredConstructor(Long.TYPE, Integer.TYPE);
-      constructor.setAccessible(true);
-      Field cleanerField = cls.getDeclaredField("cleaner");
-      cleanerField.setAccessible(true);
+      if (CLEANER_CREATE_METHOD == null) {
+        try {
+          return ByteBuffer.allocateDirect(size);
+        } catch (OutOfMemoryError oome) {
+          // checkstyle.off: RegexpSinglelineJava
+          throw new OutOfMemoryError("Failed to allocate direct buffer (" + oome.getMessage() +
+              "); try increasing -XX:MaxDirectMemorySize=... to, for example, your heap size");
+          // checkstyle.on: RegexpSinglelineJava
+        }
+      }
       long memory = allocateMemory(size);
-      ByteBuffer buffer = (ByteBuffer) constructor.newInstance(memory, size);
-      Cleaner cleaner = Cleaner.create(buffer, () -> freeMemory(memory));
-      cleanerField.set(buffer, cleaner);
+      ByteBuffer buffer = (ByteBuffer) DBB_CONSTRUCTOR.newInstance(memory, size);
+      try {
+        DBB_CLEANER_FIELD.set(buffer,
+            CLEANER_CREATE_METHOD.invoke(null, buffer, (Runnable) () -> freeMemory(memory)));
+      } catch (IllegalAccessException | InvocationTargetException e) {
+        freeMemory(memory);
+        throw new IllegalStateException(e);
+      }
       return buffer;
     } catch (Exception e) {
       throwException(e);
