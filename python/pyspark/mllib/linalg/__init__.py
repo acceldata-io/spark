@@ -52,7 +52,7 @@ __all__ = ['Vector', 'DenseVector', 'SparseVector', 'Vectors',
 if sys.version_info[:2] == (2, 7):
     # speed up pickling array in Python 2.7
     def fast_pickle_array(ar):
-        return array.array, (ar.typecode, ar.tostring())
+        return array.array, (ar.typecode, ar.tobytes())
     copy_reg.pickle(array.array, fast_pickle_array)
 
 
@@ -316,7 +316,7 @@ class DenseVector(Vector):
         return DenseVector(values)
 
     def __reduce__(self):
-        return DenseVector, (self.array.tostring(),)
+        return DenseVector, (self.array.tobytes(),)
 
     def numNonzeros(self):
         """
@@ -583,7 +583,7 @@ class SparseVector(Vector):
     def __reduce__(self):
         return (
             SparseVector,
-            (self.size, self.indices.tostring(), self.values.tostring()))
+            (self.size, self.indices.tobytes(), self.values.tobytes()))
 
     @staticmethod
     def parse(s):
@@ -1032,7 +1032,7 @@ class DenseMatrix(Matrix):
 
     def __reduce__(self):
         return DenseMatrix, (
-            self.numRows, self.numCols, self.values.tostring(),
+            self.numRows, self.numCols, self.values.tobytes(),
             int(self.isTransposed))
 
     def __str__(self):
@@ -1246,8 +1246,8 @@ class SparseMatrix(Matrix):
 
     def __reduce__(self):
         return SparseMatrix, (
-            self.numRows, self.numCols, self.colPtrs.tostring(),
-            self.rowIndices.tostring(), self.values.tostring(),
+            self.numRows, self.numCols, self.colPtrs.tobytes(),
+            self.rowIndices.tobytes(), self.values.tobytes(),
             int(self.isTransposed))
 
     def __getitem__(self, indices):

@@ -473,7 +473,9 @@ class SparkSession(object):
                                 copied = True
                             pdf[field.name] = s
             else:
-                for column, series in pdf.iteritems():
+                # pandas 2.x removed iteritems(); use items() which exists in 1.x and 2.x.
+                _items = getattr(pdf, "items", None) or pdf.iteritems
+                for column, series in _items():
                     s = _check_series_convert_timestamps_tz_local(series, timezone)
                     if s is not series:
                         if not copied:
@@ -527,7 +529,10 @@ class SparkSession(object):
         pdf_slices = (pdf.iloc[start:start + step] for start in xrange(0, len(pdf), step))
 
         # Create Arrow record batches
-        batches = [_create_batch([(c, t) for (_, c), t in zip(pdf_slice.iteritems(), arrow_types)],
+        # pandas 2.x removed iteritems(); use items() (1.x and 2.x compatible).
+        def _items(_pdf):
+            return (_pdf.items() if hasattr(_pdf, "items") else _pdf.iteritems())
+        batches = [_create_batch([(c, t) for (_, c), t in zip(_items(pdf_slice), arrow_types)],
                                  timezone)
                    for pdf_slice in pdf_slices]
 
