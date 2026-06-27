@@ -548,13 +548,6 @@
         <groupId>org.fusesource.leveldbjni</groupId>
         <artifactId>leveldbjni-all</artifactId>
         <version>1.8</version>
-        <exclusions>
-          <!-- CVE-2024-36124: org.iq80.snappy out-of-bounds read; Spark uses org.xerial.snappy:snappy-java -->
-          <exclusion>
-            <groupId>org.iq80.snappy</groupId>
-            <artifactId>snappy</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.seleniumhq.selenium</groupId>
@@ -1605,11 +1598,6 @@
           <exclusion>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
-          </exclusion>
-          <!-- CVE-2024-36124: org.iq80.snappy out-of-bounds read; Spark uses org.xerial.snappy:snappy-java -->
-          <exclusion>
-            <groupId>org.iq80.snappy</groupId>
-            <artifactId>snappy</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
