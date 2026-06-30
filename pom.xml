@@ -2124,11 +2124,6 @@
         <version>2.15.0</version>
       </dependency>
       <dependency>
-        <groupId>dnsjava</groupId>
-        <artifactId>dnsjava</artifactId>
-        <version>3.6.0</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.arrow</groupId>
         <artifactId>arrow-vector</artifactId>
         <version>${arrow.version}</version>
