@@ -18,13 +18,11 @@
 package org.apache.spark.storage
 
 import java.nio.{ByteBuffer, MappedByteBuffer}
-
 import scala.collection.Map
 import scala.collection.mutable
-
 import sun.nio.ch.DirectBuffer
-
 import org.apache.spark.internal.Logging
+import org.apache.spark.util.Utils
 
 /**
  * Storage information for each BlockManager.
@@ -202,7 +200,7 @@ private[spark] object StorageUtils extends Logging {
   // avoids parsing the java.version string. Requires --add-opens java.base/... at runtime so the
   // theUnsafe field access is permitted on JDK 11.
   private val bufferCleaner: DirectBuffer => Unit = {
-    val unsafeClass = Class.forName("sun.misc.Unsafe")
+    val unsafeClass = Utils.classForName("sun.misc.Unsafe")
     val invokeCleaner =
       try {
         Some(unsafeClass.getMethod("invokeCleaner", classOf[ByteBuffer]))
