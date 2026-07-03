@@ -193,6 +193,19 @@
         </dependency>
       </dependencies>
     </profile>
+    <!-- Ships the Kafka 0.10 streaming connector (and its transitive kafka-clients)
+         in the distribution for CDP runtime parity; without it Kafka DStream
+         applications fail out of the box (OCR-2525). -->
+    <profile>
+      <id>kafka-0-10</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.spark</groupId>
+          <artifactId>spark-streaming-kafka-0-10_${scala.binary.version}</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
     <profile>
       <id>bigtop-dist</id>
       <!-- This profile uses the assembly plugin to create a special "dist" package for BigTop
