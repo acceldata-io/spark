@@ -61,7 +61,7 @@ private[spark] object HiveUtils extends Logging {
   /** The version of hive used internally by Spark SQL. */
   val builtinHiveVersion: String = "1.2.1"
 
-  // ODP-7038: definition restored — SPARK-28723 added references to HiveUtils.isHive23
+  // ODP-7038: definition restored - SPARK-28723 added references to HiveUtils.isHive23
   // in test/shim code but the actual val was missing from the cherry-pick. On this branch
   // builtinHiveVersion is "1.2.1" so this evaluates to false and the test branches fall
   // through to the original Hive-1.2 expectations.
