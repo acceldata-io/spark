@@ -123,6 +123,7 @@
   </modules>
 
   <properties>
+    <odp.release.version>3.2.3.7-2</odp.release.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>1.8</java.version>
@@ -134,12 +135,12 @@
 
     <reload4j.version>1.2.18.3</reload4j.version>
 
-    <hadoop.version>3.2.3.3.2.3.7-2</hadoop.version>
+    <hadoop.version>3.2.3.${odp.release.version}</hadoop.version>
 
     <protobuf.version>3.25.5</protobuf.version>
     <yarn.version>${hadoop.version}</yarn.version>
     <flume.version>1.6.0</flume.version>
-    <zookeeper.version>3.5.10.3.2.3.7-2</zookeeper.version>
+    <zookeeper.version>3.5.10.${odp.release.version}</zookeeper.version>
     <curator.version>5.2.0</curator.version>
     <hive.group>org.spark-project.hive</hive.group>
     <!-- Version used in Maven Hive dependency -->
@@ -2879,18 +2880,18 @@
     <profile>
       <id>hadoop-3.1</id>
       <properties>
-        <hadoop.version>3.2.3.3.2.3.7-2</hadoop.version>
+        <hadoop.version>3.2.3.${odp.release.version}</hadoop.version>
         <curator.version>5.2.0</curator.version>
-        <zookeeper.version>3.5.10.3.2.3.7-2</zookeeper.version>
+        <zookeeper.version>3.5.10.${odp.release.version}</zookeeper.version>
       </properties>
     </profile>
 
     <profile>
       <id>hadoop-3.2</id>
       <properties>
-        <hadoop.version>3.2.3.3.2.3.7-2</hadoop.version>
+        <hadoop.version>3.2.3.${odp.release.version}</hadoop.version>
         <curator.version>5.2.0</curator.version>
-        <zookeeper.version>3.5.10.3.2.3.7-2</zookeeper.version>
+        <zookeeper.version>3.5.10.${odp.release.version}</zookeeper.version>
         <!-- ODP-7038: avoid updating hive version here or empty orc classifier.
         Leaving unset means they inherit from the top-level -->
         <!-- Do not need parquet-hadoop-bundle because we already have

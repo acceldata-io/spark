@@ -20,6 +20,7 @@ package org.apache.spark.sql.hive
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectInspector
 
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
+import org.apache.spark.util.Utils
 
 /**
  * ODP-7072: external Hive tables that use the legacy Hive
@@ -44,7 +45,7 @@ private[hive] object HiveTimestampCompat {
 
   private lazy val hiveTsClass: Option[Class[_]] =
     try {
-      Some(Class.forName("org.apache.hadoop.hive.common.type.Timestamp"))
+      Some(Utils.classForName("org.apache.hadoop.hive.common.type.Timestamp"))
     } catch {
       case _: Throwable => None
     }
