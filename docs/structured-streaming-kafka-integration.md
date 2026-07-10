@@ -593,7 +593,13 @@ Note that the following Kafka params cannot be set and the Kafka source or sink 
 
 - **group.id**: Kafka source will create a unique group id for each query automatically. The user can
 set the prefix of the automatically generated group.id's via the optional source option `groupIdPrefix`, default value
-is "spark-kafka-source".
+is "spark-kafka-source". You can also set `kafka.group.id` to force Spark to use a specific group id;
+when set, this option overrides `groupIdPrefix` and the auto-generated group id. Unlike the other options
+listed here, `kafka.group.id` is accepted (it no longer throws) and is only surfaced through a logged
+warning. Use it with caution: **each query should use a unique `kafka.group.id`**. Reusing the same group
+id across multiple concurrent queries or sources makes them share partition assignments and offset
+management, which can lead to missed or duplicated data. Avoid setting `kafka.group.id` directly unless you
+fully understand Kafka consumer-group semantics.
 - **auto.offset.reset**: Set the source option `startingOffsets` to specify
  where to start instead. Structured Streaming manages which offsets are consumed internally, rather
  than rely on the kafka Consumer to do it. This will ensure that no data is missed when new
