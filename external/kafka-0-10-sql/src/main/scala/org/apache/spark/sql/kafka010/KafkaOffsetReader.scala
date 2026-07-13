@@ -82,7 +82,9 @@ private[kafka010] class KafkaOffsetReader(
     assert(Thread.currentThread().isInstanceOf[UninterruptibleThread])
     if (_consumer == null) {
       val newKafkaParams = new ju.HashMap[String, Object](driverKafkaParams)
-      newKafkaParams.put(ConsumerConfig.GROUP_ID_CONFIG, nextGroupId())
+      if (driverKafkaParams.get(ConsumerConfig.GROUP_ID_CONFIG) == null) {
+        newKafkaParams.put(ConsumerConfig.GROUP_ID_CONFIG, nextGroupId())
+      }
       _consumer = consumerStrategy.createConsumer(newKafkaParams)
     }
     _consumer
