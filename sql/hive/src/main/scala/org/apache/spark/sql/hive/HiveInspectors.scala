@@ -625,7 +625,7 @@ private[hive] trait HiveInspectors {
         case x: DateObjectInspector =>
           data: Any => {
             if (data != null) {
-              DateTimeUtils.fromJavaDate(x.getPrimitiveJavaObject(data))
+              HiveDateCompat.toDays(data, x)
             } else {
               null
             }
@@ -642,7 +642,7 @@ private[hive] trait HiveInspectors {
         case ti: TimestampObjectInspector =>
           data: Any => {
             if (data != null) {
-              DateTimeUtils.fromJavaTimestamp(ti.getPrimitiveJavaObject(data))
+              HiveTimestampCompat.toMicros(data, ti)
             } else {
               null
             }
