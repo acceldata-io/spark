@@ -225,6 +225,26 @@ public class OrcColumnarBatchReader extends RecordReader<Void, ColumnarBatch> {
    */
   private boolean nextBatch() throws IOException {
     recordReader.nextBatch(batch);
+    // ODP-7072: Hive 4 / ORC 1.8+ may emit DATE/TIMESTAMP columns in the proleptic Gregorian
+    // calendar. Spark 2.4 renders dates/timestamps with the hybrid Julian-Gregorian calendar, so
+    // proleptic values before 1582-10-15 would be skewed. Normalize each column to hybrid using
+    // ORC's own tested conversion, gated on the vector's self-reported calendar flag so it is a
+    // no-op when the file is already hybrid (post-1582 values are unaffected in every case).
+    for (org.apache.hadoop.hive.ql.exec.vector.ColumnVector col : batch.cols) {
+      if (col instanceof org.apache.hadoop.hive.ql.exec.vector.DateColumnVector) {
+        org.apache.hadoop.hive.ql.exec.vector.DateColumnVector dcv =
+            (org.apache.hadoop.hive.ql.exec.vector.DateColumnVector) col;
+        if (dcv.isUsingProlepticCalendar()) {
+          dcv.changeCalendar(false, true);
+        }
+      } else if (col instanceof org.apache.hadoop.hive.ql.exec.vector.TimestampColumnVector) {
+        org.apache.hadoop.hive.ql.exec.vector.TimestampColumnVector tcv =
+            (org.apache.hadoop.hive.ql.exec.vector.TimestampColumnVector) col;
+        if (tcv.usingProlepticCalendar()) {
+          tcv.changeCalendar(false, true);
+        }
+      }
+    }
     int batchSize = batch.size;
     if (batchSize == 0) {
       return false;
