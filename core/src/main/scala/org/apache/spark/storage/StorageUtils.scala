@@ -193,6 +193,40 @@ private[spark] class StorageStatus(
 
 /** Helper methods for storage-related objects. */
 private[spark] object StorageUtils extends Logging {
+
+  // ODP-7076: Spark 2.4 called DirectBuffer.cleaner().clean() directly. That method's return
+  // type changed across JDKs (Java 8: sun.misc.Cleaner; Java 9+: jdk.internal.ref.Cleaner), so
+  // the hard call throws NoSuchMethodError when this build runs on JDK 11. Resolve the cleaner
+  // once, reflectively: use sun.misc.Unsafe.invokeCleaner(ByteBuffer) when it exists (Java 9+),
+  // otherwise fall back to DirectBuffer.cleaner().clean() (Java 8). Probing for invokeCleaner
+  // avoids parsing the java.version string. Requires --add-opens java.base/... at runtime so the
+  // theUnsafe field access is permitted on JDK 11.
+  private val bufferCleaner: DirectBuffer => Unit = {
+    // scalastyle:off classforname
+    val unsafeClass = Class.forName("sun.misc.Unsafe")
+    // scalastyle:on classforname
+    val invokeCleaner =
+      try {
+        Some(unsafeClass.getMethod("invokeCleaner", classOf[ByteBuffer]))
+      } catch {
+        case _: NoSuchMethodException => None   // Java 8: invokeCleaner doesn't exist
+      }
+    invokeCleaner match {
+      case Some(method) =>                       // Java 9+
+        val theUnsafe = unsafeClass.getDeclaredField("theUnsafe")
+        theUnsafe.setAccessible(true)
+        val unsafe = theUnsafe.get(null)
+        (buffer: DirectBuffer) => method.invoke(unsafe, buffer.asInstanceOf[ByteBuffer])
+      case None =>                               // Java 8
+        (buffer: DirectBuffer) => {
+          val cleaner = buffer.cleaner()
+          if (cleaner != null) {
+            cleaner.clean()
+          }
+        }
+    }
+  }
+
   /**
    * Attempt to clean up a ByteBuffer if it is direct or memory-mapped. This uses an *unsafe* Sun
    * API that will cause errors if one attempts to read from the disposed buffer. However, neither
@@ -208,10 +242,5 @@ private[spark] object StorageUtils extends Logging {
     }
   }
 
-  private def cleanDirectBuffer(buffer: DirectBuffer) = {
-    val cleaner = buffer.cleaner()
-    if (cleaner != null) {
-      cleaner.clean()
-    }
-  }
+  private def cleanDirectBuffer(buffer: DirectBuffer): Unit = bufferCleaner(buffer)
 }
