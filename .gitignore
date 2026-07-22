@@ -84,6 +84,8 @@ docs/.jekyll-metadata
 TempStatsStore/
 metastore/
 metastore_db/
+!sql/hive/src/main/java/org/apache/hadoop/hive/metastore/
+!sql/hive/src/main/java/org/apache/hadoop/hive/metastore/**
 sql/hive-thriftserver/test_warehouses
 warehouse/
 spark-warehouse/

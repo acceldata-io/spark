@@ -183,6 +183,22 @@ echo "Build flags: $@" >> "$DISTDIR/RELEASE"
 # Copy jars
 cp "$SPARK_HOME"/assembly/target/scala*/jars/* "$DISTDIR/jars/"
 
+CLASS_PREFIX="org/apache/hadoop/hive/metastore/api/InsertEventRequestData"
+SPARK_HIVE_JAR="$(ls -1 "$SPARK_HOME"/sql/hive/target/spark-hive_*.jar 2>/dev/null \
+  | grep -vE -- '-(sources|tests|test-sources|javadoc)\.jar$' | head -1 || true)"
+HMS_JAR="$(ls -1 "$DISTDIR"/jars/hive-metastore-*.jar 2>/dev/null | head -1 || true)"
+if [ -n "$SPARK_HIVE_JAR" ] && [ -n "$HMS_JAR" ] && \
+   jar tf "$SPARK_HIVE_JAR" 2>/dev/null | grep -q "^${CLASS_PREFIX}\.class$"; then
+  PATCH_TMP="$(mktemp -d)"
+  (
+    cd "$PATCH_TMP"
+    jar tf "$SPARK_HIVE_JAR" | grep "^${CLASS_PREFIX}" | grep '\.class$' > classes.list
+    jar xf "$SPARK_HIVE_JAR" $(cat classes.list)
+    jar uf "$HMS_JAR" $(cat classes.list)
+  )
+  rm -rf "$PATCH_TMP"
+fi
+
 # Only create the standalone metastore directory if metastore artifact were copied.
 if [ -f "$SPARK_HOME"/standalone-metastore/target/standalone-metastore-*.jar ]; then
   mkdir "$DISTDIR/standalone-metastore"
