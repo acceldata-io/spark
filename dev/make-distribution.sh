@@ -213,6 +213,41 @@ sys.stderr.write("ODP-7074: removed %d storage-api classes from %s\n" % (removed
 PYEOF
 fi
 
+# ODP-7072: the Hive-1.2-fork hive-exec's serde2.JsonSerDe (and the HiveTimestampCompat/HiveDateCompat
+# proleptic<->hybrid calendar bridge) reference org.apache.hadoop.hive.common.type.{Date,Timestamp},
+# but those classes exist in neither the Hive-1.2 hive-exec nor hive-storage-api-2.8.1. Native
+# spark.sql reads through the Hive serde path (e.g. JsonSerDe over Hive-4 tables) therefore fail with
+# NoClassDefFoundError: org/apache/hadoop/hive/common/type/Date. Bundle ONLY the date/timestamp
+# classes from Hive 4.0.1's hive-common - deliberately NOT HiveDecimal/HiveChar/HiveInterval*, which
+# would re-shadow hive-storage-api-2.8.1 and re-break HWC/ORC decimal reads. hive-common is resolved
+# from the same ODP repo the build already uses.
+HIVE4_VERSION="${HIVE4_VERSION:-4.0.1.3.3.6.3-103}"
+CT_DIR=$(mktemp -d)
+if "$MVN" -q org.apache.maven.plugins:maven-dependency-plugin:3.1.1:copy \
+     -Dartifact=org.apache.hive:hive-common:${HIVE4_VERSION} \
+     -DoutputDirectory="$CT_DIR" -Dmdep.stripVersion=true "$@" >/dev/null 2>&1 \
+   && [ -f "$CT_DIR/hive-common.jar" ]; then
+  echo "ODP-7072: bundling Hive-4 common.type date/timestamp classes -> odp-hive4-common-type.jar"
+  python - "$CT_DIR/hive-common.jar" "$DISTDIR/jars/odp-hive4-common-type.jar" <<'PYEOF'
+import sys, zipfile
+src, dst = sys.argv[1], sys.argv[2]
+pfx = "org/apache/hadoop/hive/common/type/"
+keep = ("Date", "Timestamp")  # NOT HiveDecimal/HiveChar/etc - those clash with hive-storage-api-2.8.1
+zin = zipfile.ZipFile(src)
+zout = zipfile.ZipFile(dst, 'w', zipfile.ZIP_DEFLATED)
+n = 0
+for item in zin.infolist():
+    fn = item.filename
+    if fn.startswith(pfx) and fn.endswith('.class') and fn[len(pfx):].startswith(keep):
+        zout.writestr(item, zin.read(fn)); n += 1
+zin.close(); zout.close()
+sys.stderr.write("ODP-7072: bundled %d common.type date/timestamp classes into %s\n" % (n, dst))
+PYEOF
+else
+  echo "ODP-7072 WARNING: could not resolve org.apache.hive:hive-common:${HIVE4_VERSION}; native Hive-serde date/timestamp reads will fail with NoClassDefFoundError: common/type/Date" >&2
+fi
+rm -rf "$CT_DIR"
+
 # Only create the standalone metastore directory if metastore artifact were copied.
 if [ -f "$SPARK_HOME"/standalone-metastore/target/standalone-metastore-*.jar ]; then
   mkdir "$DISTDIR/standalone-metastore"
