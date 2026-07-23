@@ -431,7 +431,6 @@
     <dependency>
       <groupId>${hive.group}</groupId>
       <artifactId>hive-exec</artifactId>
-      <classifier>core</classifier>
       <scope>provided</scope>
       <exclusions>
         <!-- CVE-2024-36124: org.iq80.snappy out-of-bounds read; Spark uses org.xerial.snappy:snappy-java -->

@@ -183,6 +183,36 @@ echo "Build flags: $@" >> "$DISTDIR/RELEASE"
 # Copy jars
 cp "$SPARK_HOME"/assembly/target/scala*/jars/* "$DISTDIR/jars/"
 
+# ODP-7074: the full hive-exec-1.2.1 jar bundles pre-split copies of the classes that now live in
+# hive-storage-api (org.apache.hadoop.hive.{ql.exec.vector,serde2.io,common.type}.*). Those stale
+# copies shadow hive-storage-api-2.8.1, so orc-core-1.9.5's OrcMapredRecordWriter throws
+# NoSuchFieldError: type on native + HWC ORC writes. Compilation uses the full jar (keeps HiveConf
+# etc., so no core-classifier cascade); here we trim ONLY the hive-storage-api-owned classes from
+# the shipped hive-exec so they resolve to hive-storage-api-2.8.1 - same net effect as upstream's
+# hive-exec-core without dropping HiveConf.
+HIVE_EXEC_DIST=$(ls "$DISTDIR"/jars/hive-exec-*.jar 2>/dev/null | grep -v -- '-core' | head -1)
+HIVE_SAPI_DIST=$(ls "$DISTDIR"/jars/hive-storage-api-*.jar 2>/dev/null | head -1)
+if [ -n "$HIVE_EXEC_DIST" ] && [ -n "$HIVE_SAPI_DIST" ]; then
+  echo "ODP-7074: trimming hive-storage-api-owned classes from $(basename "$HIVE_EXEC_DIST")"
+  python - "$HIVE_EXEC_DIST" "$HIVE_SAPI_DIST" <<'PYEOF'
+import sys, zipfile, shutil
+exec_jar, sapi_jar = sys.argv[1], sys.argv[2]
+owned = set(n for n in zipfile.ZipFile(sapi_jar).namelist() if n.endswith('.class'))
+tmp = exec_jar + '.trimmed'
+zin = zipfile.ZipFile(exec_jar)
+zout = zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED)
+removed = 0
+for item in zin.infolist():
+    if item.filename in owned:
+        removed += 1
+        continue
+    zout.writestr(item, zin.read(item.filename))
+zin.close(); zout.close()
+shutil.move(tmp, exec_jar)
+sys.stderr.write("ODP-7074: removed %d storage-api classes from %s\n" % (removed, exec_jar))
+PYEOF
+fi
+
 # Only create the standalone metastore directory if metastore artifact were copied.
 if [ -f "$SPARK_HOME"/standalone-metastore/target/standalone-metastore-*.jar ]; then
   mkdir "$DISTDIR/standalone-metastore"
