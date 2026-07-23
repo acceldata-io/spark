@@ -97,9 +97,9 @@
     <dependency>
       <groupId>${hive.group}</groupId>
       <artifactId>hive-exec</artifactId>
-<!--
+      <!-- ODP-7074: core classifier (see root pom note) - avoids the orc-core-1.9.5 <->
+           hive-storage-api-2.8.1 class clash by not bundling stale storage-api classes here. -->
       <classifier>core</classifier>
--->
     </dependency>
     <dependency>
       <groupId>${hive.group}</groupId>

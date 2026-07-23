@@ -1496,9 +1496,13 @@
       <dependency>
         <groupId>${hive.group}</groupId>
         <artifactId>hive-exec</artifactId>
-<!--
+        <!-- ODP-7074: use the hive-exec 'core' classifier (upstream Spark 2.4 default) so the
+             storage-api classes that moved to hive-storage-api (org.apache.hadoop.hive.ql.exec.vector.*,
+             serde2.io.*, common.type.*) are NOT bundled in hive-exec. Shipping the FULL jar makes its
+             stale copies shadow hive-storage-api-2.8.1, so orc-core-1.9.5's OrcMapredRecordWriter hits
+             NoSuchFieldError: type on native + HWC ORC writes. NOTE: core omits some transitive deps;
+             if the build/runtime misses a class, add it explicitly (see sql/hive/pom.xml). -->
         <classifier>core</classifier>
--->
         <version>${hive.version}</version>
         <scope>${hive.deps.scope}</scope>
         <exclusions>
