@@ -61,7 +61,16 @@ private[spark] object ApiRootResource {
     val jerseyContext = new ServletContextHandler(ServletContextHandler.NO_SESSIONS)
     jerseyContext.setContextPath("/api")
     val holder: ServletHolder = new ServletHolder(classOf[ServletContainer])
-    holder.setInitParameter(ServerProperties.PROVIDER_PACKAGES, "org.apache.spark.status.api.v1")
+    // ODP-7309: register REST resources/providers explicitly instead of PROVIDER_PACKAGES.
+    // Package scanning drives Jersey's PackageNamesScanner -> repackaged ASM ClassReader, whose
+    // ASM5 cannot read JDK17 (class major 61) bytecode and fails ServletContainer.init with a bare
+    // IllegalArgumentException, leaving the whole /api/v1 servlet unregistered (404). Explicit
+    // registration skips scanning (no ASM), fixing the REST API on JDK17 with stock jersey 2.22.2.
+    // Set = the sole class-level @Path root resource + the two @Provider classes; every other
+    // resource is a sub-resource reached via a locator and resolved at runtime (needs no listing).
+    holder.setInitParameter(ServerProperties.PROVIDER_CLASSNAMES,
+      Seq(classOf[ApiRootResource], classOf[SecurityFilter], classOf[JacksonMessageWriter])
+        .map(_.getName).mkString(";"))
     UIRootFromServletContext.setUiRoot(jerseyContext, uiRoot)
     jerseyContext.addServlet(holder, "/*")
     jerseyContext
