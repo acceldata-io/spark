@@ -221,7 +221,7 @@ fi
 # classes from Hive 4.0.1's hive-common - deliberately NOT HiveDecimal/HiveChar/HiveInterval*, which
 # would re-shadow hive-storage-api-2.8.1 and re-break HWC/ORC decimal reads. hive-common is resolved
 # from the same ODP repo the build already uses.
-HIVE4_VERSION="${HIVE4_VERSION:-4.0.1.3.3.6.3-103}"
+HIVE4_VERSION="${HIVE4_VERSION:-4.0.1.3.3.6.5-SNAPSHOT}"
 CT_DIR=$(mktemp -d)
 if "$MVN" -q org.apache.maven.plugins:maven-dependency-plugin:3.1.1:copy \
      -Dartifact=org.apache.hive:hive-common:${HIVE4_VERSION} \
