@@ -90,8 +90,8 @@ public class HiveCommandOperation extends ExecuteStatementOperation {
 
 
   private void tearDownSessionIO() {
-    IOUtils.cleanup(LOG, parentSession.getSessionState().out);
-    IOUtils.cleanup(LOG, parentSession.getSessionState().err);
+    IOUtils.closeStreams(parentSession.getSessionState().out);
+    IOUtils.closeStreams(parentSession.getSessionState().err);
   }
 
   @Override
@@ -206,7 +206,7 @@ public class HiveCommandOperation extends ExecuteStatementOperation {
 
   private void resetResultReader() {
     if (resultReader != null) {
-      IOUtils.cleanup(LOG, resultReader);
+      IOUtils.closeStreams(resultReader);
       resultReader = null;
     }
   }
