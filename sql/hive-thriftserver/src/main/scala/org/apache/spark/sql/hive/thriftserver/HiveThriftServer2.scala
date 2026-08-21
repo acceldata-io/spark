@@ -34,7 +34,6 @@ import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd, SparkListenerJobStart}
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.hive.HiveUtils
 import org.apache.spark.sql.hive.thriftserver.ReflectionUtils._
 import org.apache.spark.sql.hive.thriftserver.ui.ThriftServerTab
 import org.apache.spark.sql.internal.SQLConf
@@ -73,24 +72,28 @@ object HiveThriftServer2 extends Logging {
    * Hive 4 metastore. spark-shell/spark-submit/pyspark never call newClientForExecution, which
    * is why only the Thrift Server was affected. Spark 3 removed executionHive entirely.
    *
-   * The conf is assembled exactly as HiveClientImpl.newState() does - HiveConf + hadoopConf +
-   * every Spark conf entry + HiveUtils.newTemporaryConfiguration - so the value handed to
-   * HiveServer2 is unchanged. The only step skipped is instantiating the client, and with it the
-   * throwaway metastore.
+   * The conf is HiveConf + hadoopConf + every Spark conf entry. It deliberately does NOT apply
+   * HiveUtils.newTemporaryConfiguration: that is what the discarded execution client used, and it
+   * blanks hive.metastore.uris to point at an in-memory Derby. HiveServer2 does not just carry
+   * this conf around - CLIService.start() builds its own HiveMetaStoreClient from it and calls
+   * getDatabases() as a connectivity test. With blank URIs that client goes embedded and hits the
+   * very same DataNucleus failure one layer further up the stack:
+   *   CLIService.start -> new HiveMetaStoreClient -> newRetryingHMSHandler -> ObjectStore
+   *     -> MetaStoreDirectSql.ensureDbInit -> "java.lang.Long ... cant be mapped"
+   * So HiveServer2 must get the real metastore URI from hive-site.xml. Its connectivity test then
+   * talks to the actual HMS, which works even through Spark's builtin Hive 1.2.1 client because
+   * get_databases (unlike get_table) still exists in Hive 4.
    */
-  private def newExecutionHiveConf(sqlContext: SQLContext): HiveConf = {
+  private def newHiveServer2Conf(sqlContext: SQLContext): HiveConf = {
     val hiveConf = new HiveConf(sqlContext.sessionState.newHadoopConf(), classOf[SessionState])
-    (sqlContext.sparkContext.conf.getAll.toMap
-      ++ HiveUtils.newTemporaryConfiguration(useInMemoryDerby = true)).foreach {
-      case (k, v) => hiveConf.set(k, v)
-    }
+    sqlContext.sparkContext.conf.getAll.foreach { case (k, v) => hiveConf.set(k, v) }
     hiveConf
   }
 
   def startWithContext(sqlContext: SQLContext): Unit = {
     val server = new HiveThriftServer2(sqlContext)
 
-    server.init(newExecutionHiveConf(sqlContext))
+    server.init(newHiveServer2Conf(sqlContext))
     server.start()
     listener = new HiveThriftServer2Listener(server, sqlContext.conf)
     sqlContext.sparkContext.addSparkListener(listener)
@@ -116,7 +119,7 @@ object HiveThriftServer2 extends Logging {
 
     try {
       val server = new HiveThriftServer2(SparkSQLEnv.sqlContext)
-      server.init(newExecutionHiveConf(SparkSQLEnv.sqlContext))
+      server.init(newHiveServer2Conf(SparkSQLEnv.sqlContext))
       server.start()
       logInfo("HiveThriftServer2 started")
       listener = new HiveThriftServer2Listener(server, SparkSQLEnv.sqlContext.conf)
