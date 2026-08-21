@@ -225,7 +225,7 @@ HIVE4_VERSION="${HIVE4_VERSION:-4.1.0.3.3.6.5-SNAPSHOT}"
 CT_DIR=$(mktemp -d)
 if "$MVN" -q org.apache.maven.plugins:maven-dependency-plugin:3.1.1:copy \
      -Dartifact=org.apache.hive:hive-common:${HIVE4_VERSION} \
-     -DoutputDirectory="$CT_DIR" -Dmdep.stripVersion=true "$@" >/dev/null 2>&1 \
+     -DoutputDirectory="$CT_DIR" -Dmdep.stripVersion=true "$@" \
    && [ -f "$CT_DIR/hive-common.jar" ]; then
   echo "ODP-7072: bundling Hive-4 common.type date/timestamp classes -> odp-hive4-common-type.jar"
   python - "$CT_DIR/hive-common.jar" "$DISTDIR/jars/odp-hive4-common-type.jar" <<'PYEOF'
@@ -244,7 +244,14 @@ zin.close(); zout.close()
 sys.stderr.write("ODP-7072: bundled %d common.type date/timestamp classes into %s\n" % (n, dst))
 PYEOF
 else
-  echo "ODP-7072 WARNING: could not resolve org.apache.hive:hive-common:${HIVE4_VERSION}; native Hive-serde date/timestamp reads will fail with NoClassDefFoundError: common/type/Date" >&2
+  echo "ODP-7072 FATAL: could not resolve org.apache.hive:hive-common:${HIVE4_VERSION}" >&2
+  echo "  The dist would ship without jars/odp-hive4-common-type.jar, and native" >&2
+  echo "  spark.sql reads through the Hive serde path would fail at runtime with" >&2
+  echo "  NoClassDefFoundError: org/apache/hadoop/hive/common/type/Date." >&2
+  echo "  Set HIVE4_VERSION to the Hive version this stack ships (odp-bigtop exports" >&2
+  echo "  HIVE_JAR_VERSION for exactly this)." >&2
+  rm -rf "$CT_DIR"
+  exit 1
 fi
 rm -rf "$CT_DIR"
 
